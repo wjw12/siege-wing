@@ -315,7 +315,7 @@ export const fx = {
       }
     }
     const nd = D.length; dm.count = nd;
-    for (let i = 0; i < nd; i++) { const d = D[i]; const s = d.size * Math.min(1, d.life * 2); _q.setFromEuler(_eul.set(d.rx, d.ry, d.rz)); _m.compose(_v.set(d.x, d.y, d.z), _q, _s.set(s, s, s)); _m.toArray(dm.instanceMatrix.array, i * 16); col[i * 3] = d.r; col[i * 3 + 1] = d.g; col[i * 3 + 2] = d.b; }
+    for (let i = 0; i < nd; i++) { const d = D[i]; const cd2 = camera ? (d.x - camera.position.x) ** 2 + (d.y - camera.position.y) ** 2 + (d.z - camera.position.z) ** 2 : 1e9; const s = d.size * Math.min(1, d.life * 2) * (d.big ? 1 : Math.min(1, Math.max(0, (cd2 - 9) / 40))); /* small chips shrink away right at the lens instead of filling the screen */ _q.setFromEuler(_eul.set(d.rx, d.ry, d.rz)); _m.compose(_v.set(d.x, d.y, d.z), _q, _s.set(s, s, s)); _m.toArray(dm.instanceMatrix.array, i * 16); col[i * 3] = d.r; col[i * 3 + 1] = d.g; col[i * 3 + 2] = d.b; }
     dm.instanceMatrix.needsUpdate = true; dm.instanceColor.needsUpdate = true;
 
     // lights

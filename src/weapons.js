@@ -137,7 +137,7 @@ export const weapons = {
       const hit = world.segHit(r.x, r.y, r.z, nx, ny, nz, 1.5, true);
       if (hit || r.t > 7) { if (hit) this._explodeRocket(hit.x, hit.y, hit.z, hit.c); R.splice(i, 1); continue; }
       r.x = nx; r.y = ny; r.z = nz;
-      if (r.t > 0.06) r.trail += dt * 60; while (r.trail > 1) { r.trail -= 1; const k = Math.random(); fx.spawn(0, r.x - r.vx * dt * k, r.y - r.vy * dt * k, r.z - r.vz * dt * k, rndS(0.8), rndS(0.8) + 0.4, rndS(0.8), 0.3, 1.5, rnd(1.4, 2.4), 0.62, 0.6, 0.58, 0.32, r.t < 0.5 ? 0.6 : 0, 1, -0.2); }
+      if (r.t > 0.06) r.trail += dt * 100; while (r.trail > 1) { r.trail -= 1; const k = Math.random(); fx.spawn(0, r.x - r.vx * dt * k, r.y - r.vy * dt * k, r.z - r.vz * dt * k, rndS(0.8), rndS(0.8) + 0.4, rndS(0.8), 0.7, 1.9, rnd(1.4, 2.4), 0.62, 0.6, 0.58, 0.32, r.t < 0.5 ? 0.6 : 0, 1, -0.2); }
       if (r.t < 1.1) fx.spawn(3, r.x, r.y, r.z, 0, 0, 0, 1.5, 1.5, 0.04, 1, 0.7, 0.3, 1, 1, 0, 0);
     }
     for (const r of R) { _v.set(r.x, r.y, r.z); _m.lookAt(_v, _v2.set(r.x + r.vx, r.y + r.vy, r.z + r.vz), heli.up).setPosition(_v); im.setMatrixAt(n++, _m); }
@@ -195,7 +195,7 @@ export const weapons = {
         M.splice(i, 1); continue;
       }
       m.x = nx; m.y = ny; m.z = nz;
-      m.trail += dt * 90; while (m.trail > 1) { m.trail -= 1; const k = Math.random(); fx.spawn(0, m.x - m.vx * dt * k, m.y - m.vy * dt * k, m.z - m.vz * dt * k, rndS(1), rndS(1) + 0.5, rndS(1), 0.45, 2.4, rnd(2.5, 4), 0.7, 0.68, 0.66, 0.42, m.t < 0.6 ? 0.8 : 0.1, 1, -0.25); }
+      m.trail += dt * 150; while (m.trail > 1) { m.trail -= 1; const k = Math.random(); fx.spawn(0, m.x - m.vx * dt * k, m.y - m.vy * dt * k, m.z - m.vz * dt * k, rndS(1), rndS(1) + 0.5, rndS(1), 1.1, 3.0, rnd(2.5, 4), 0.7, 0.68, 0.66, 0.42, m.t < 0.6 ? 0.8 : 0.1, 1, -0.25); }
       fx.spawn(3, m.x, m.y, m.z, 0, 0, 0, 2.4, 2.4, 0.04, 1, 0.75, 0.35, 1, 1, 0, 0);
     }
     for (const m of M) { _v.set(m.x, m.y, m.z); _m.lookAt(_v, _v2.set(m.x + m.dx, m.y + m.dy, m.z + m.dz), heli.up).setPosition(_v); im.setMatrixAt(n++, _m); }
