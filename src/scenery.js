@@ -132,7 +132,7 @@ export const scenery = {
       const s = 0.75 + rng() * 0.6; const ry = rng() * TAU;
       const key = Math.floor(x / CS) + ',' + Math.floor(z / CS); let c = cells.get(key); if (!c) cells.set(key, c = { cx: (Math.floor(x / CS) + 0.5) * CS, cz: (Math.floor(z / CS) + 0.5) * CS, lists: types.map(() => []), lp: [], lo: [], cy: y });
       const inst = { x, y: y - 0.15, z, ry, s, rx: (rng() - 0.5) * 0.08, rz: (rng() - 0.5) * 0.08 };
-      c.lists[t].push(inst); (t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? { ...inst, s: s * 0.8 } : t === 5 ? { ...inst, s: s * 0.45 } : inst);
+      c.lists[t].push(inst); (t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? { ...inst, s: s * 0.42, sy: s * 1.08 } : t === 5 ? { ...inst, s: s * 0.45 } : inst);
       if (r < 1750) { const col = world.addCyl(x, z, Math.max(1.0, dims[t][1] * s * 0.55), y, y + dims[t][0] * s - 1.0, 'tree'); col.hard = true; }
     }
     const fol = this.mats.foliage;

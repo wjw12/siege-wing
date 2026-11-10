@@ -175,7 +175,7 @@
   ]
  },
  "Tree_Oak_A": {
-  "tris": 3046,
+  "tris": 3994,
   "mats": [
    "Bark",
    "Leaf"
@@ -187,7 +187,7 @@
   ]
  },
  "Tree_Oak_B": {
-  "tris": 2610,
+  "tris": 3424,
   "mats": [
    "Bark",
    "Leaf"
@@ -250,21 +250,21 @@
    "Leaf"
   ],
   "bbox": [
-   4.68,
-   5.0,
+   5.1,
+   4.9,
    17.5
   ]
  },
  "Tree_Oak_LOD": {
-  "tris": 46,
+  "tris": 47,
   "mats": [
    "Bark",
    "Leaf"
   ],
   "bbox": [
-   10.96,
-   8.73,
-   11.2
+   11.6,
+   11.2,
+   11.0
   ]
  },
  "Rock_A": {

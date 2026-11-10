@@ -976,57 +976,139 @@ def foliage_col(b, center, R, top, inner, sun, sundir=Vector((0.5, -0.3, 0.8)).n
     return fn
 
 
-# ---------- far LODs (unchanged silhouettes; colours tuned to the average of the detailed trees)
-def pine_lod(name, H, R, tiers, seed, n=9, bare=0.16, tint=1.0, tip=PINE_TIP, inn=PINE_IN, under=PINE_UNDER):
-    b = B(name, seed, ao_dist=3.0, ao_strength=0.55)
-    lean = Vector((b.rng.uniform(-0.3, 0.3), b.rng.uniform(-0.3, 0.3), 0))
-    axis = lambda z: lean * (z / H) ** 2
-    r0 = 0.1 + H * 0.016
-    trunk(b, [(0, 0, 0), tuple(axis(H * 0.35) + Vector((0, 0, H * 0.35)))], [r0, r0 * 0.7], 3, H=H, capped=False)
-    span = H * (1 - bare)
+# ---------- far LODs (drawn by the thousand: all the reading comes from silhouette, authored normals and baked colour)
+def pine_lod(name, H, R, tiers, seed, dims, bare=0.15, tint=1.0, tip=PINE_TIP, inn=PINE_IN, under=PINE_UNDER):
+    """spruce stand-in: whorls of 3 drooping bough lobes (bright tips, dark creases between them and under the whorl above),
+    each whorl turned and sized irregularly, a thin ragged leader and a 3-triangle stem"""
+    b = VB(name, seed, ao_dist=3.0, ao_strength=0.5)
+    rng = b.rng
+    lean = Vector((rng.uniform(-0.35, 0.35), rng.uniform(-0.35, 0.35), 0))
+    axis = lambda z: lean * (z / H) ** 2 + Vector((0, 0, z))
+    r0 = 0.14 + H * 0.016
+    span = H * (1 - bare); ph = rng.uniform(0, 2 * pi)
+    def nfn(p, fn):
+        a = axis(p.z); o = Vector((p.x - a.x, p.y - a.y, 0))
+        o = o.normalized() if o.length > 1e-4 else Vector((fn.x, fn.y, 0))
+        return (fn * 0.3 + (o * 0.75 + ZUP * 0.66).normalized() * 0.7).normalized()
+    # stem: a 3-sided spike that disappears into the crown
+    base = [b.vert((math.cos(2.1 * i) * r0 * 1.5, math.sin(2.1 * i) * r0 * 1.5, 0), 0.0) for i in range(3)]
+    sa = b.vert(axis(H * 0.5), 0.1)
+    bk = C('#4a3d30')
+    for i in range(3):
+        b.face_auto([base[i], base[(i + 1) % 3], sa], 'Bark', [mulc(bk, 0.7), mulc(bk, 0.7), mulc(bk, 0.9)], (0, 0, H * 0.2))
     for k in range(tiers):
-        t = k / max(1, tiers - 1)
-        z_low = H * bare + span * 0.8 * t
-        th = span / tiers * 1.7
-        z_high = min(H + 0.01, z_low + th) if k < tiers - 1 else H
-        r = R * (1 - 0.8 * t) * b.rng.uniform(0.88, 1.1)
-        ax0 = axis(z_low); ph = b.rng.uniform(0, 2 * pi)
-        tipc = mulc(lerpc(inn, tip, 0.55 + 0.45 * t), tint)
-        outer = []
-        for i in range(n):
-            a = ph + 2 * pi * i / n
-            jag = (1.0 if i % 2 == 0 else 0.68) * b.rng.uniform(0.88, 1.1)
-            rr = r * jag
-            droop = r * (0.16 if i % 2 == 0 else 0.02)
-            wz = (z_low / H) ** 1.5
-            outer.append(b.vert(ax0 + Vector((math.cos(a) * rr, math.sin(a) * rr, z_low - droop)), clamp(0.35 + 0.65 * wz) * (1.0 if i % 2 == 0 else 0.8)))
-        apex = b.vert(axis(z_high) + Vector((0, 0, z_high)), clamp(0.1 + 0.6 * (z_high / H) ** 2))
-        cen = ax0 + Vector((0, 0, z_low + th * 0.2))
-        for i in range(n):
-            j = (i + 1) % n
-            ci, cj = (tipc if i % 2 == 0 else mulc(tipc, 0.8)), (tipc if j % 2 == 0 else mulc(tipc, 0.8))
-            inner = mulc(lerpc(inn, tip, 0.25 + 0.3 * t), tint)
-            b.face_auto([outer[i], outer[j], apex], 'Leaf', [ci, cj, inner], cen)
-        if k == 0:
-            uc = b.vert(ax0 + Vector((0, 0, z_low + r * 0.28)), 0.1)
-            for i in range(n):
-                j = (i + 1) % n
-                b.face_auto([outer[j], outer[i], uc], 'Leaf', [mulc(under, 1.6), mulc(under, 1.6), under], (0, 0, -1), direction=True)
+        t = k / (tiers - 1)
+        z_low = H * bare + span * 0.8 * t ** 0.92
+        th = span / tiers * lerp(2.0, 1.5, t)
+        z_high = min(H * 0.93, z_low + th)
+        r = R * ((1 - t) ** 0.8 * 0.86 + 0.14) * rng.uniform(0.86, 1.14)
+        if k == 0: r *= 0.9                                            # lowest whorl is a little thinner / dying back
+        ph += pi / 3 + rng.uniform(-0.35, 0.35)
+        off = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), 0)) * r * 0.12
+        ax0 = axis(z_low) + off
+        wz = (z_low / H) ** 1.5
+        tipc = mulc(lerpc(inn, tip, 0.72 + 0.28 * t), tint * 1.0)
+        crease = mulc(lerpc(under, inn, 0.55 + 0.3 * t), tint)
+        top_in = mulc(lerpc(under, inn, 0.75 + 0.25 * t), tint)
+        outer = []; oc = []
+        short = rng.randrange(3) if rng.random() < 0.6 else -1         # one stunted bough on most whorls
+        for i in range(6):
+            a = ph + 2 * pi * i / 6 + rng.uniform(-0.16, 0.16)
+            if i % 2 == 0:
+                rr = r * rng.uniform(0.86, 1.16) * (0.66 if i // 2 == short else 1.0)
+                zz = z_low - rr * rng.uniform(0.22, 0.42) * lerp(1.0, 0.5, t)
+                oc.append(hue(mulc(tipc, rng.uniform(0.86, 1.16)), rng.uniform(-0.1, 0.12))); w = clamp(0.35 + 0.65 * wz)
+            else:
+                rr = r * rng.uniform(0.34, 0.5)
+                zz = z_low + r * rng.uniform(0.1, 0.24)
+                oc.append(crease); w = clamp(0.25 + 0.5 * wz)
+            outer.append(b.vert(ax0 + Vector((math.cos(a) * rr, math.sin(a) * rr, zz - z_low)), w))
+        apex = b.vert(axis(z_high), clamp(0.1 + 0.6 * (z_high / H) ** 2))
+        for i in range(6):
+            j = (i + 1) % 6
+            b.card([outer[i], outer[j], apex], [oc[i], oc[j], top_in], None, nfn, (b.v[outer[i]] + b.v[outer[j]]) * 0.5 - ax0 + ZUP * r)
+    # leader: thin crooked spike above the top whorl
+    zl = H * 0.8; rl = R * 0.12
+    lb = [b.vert(axis(zl) + Vector((math.cos(ph + 2.1 * i) * rl, math.sin(ph + 2.1 * i) * rl, 0)), 0.75) for i in range(3)]
+    la = b.vert(axis(H) + Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0)), 0.95)
+    lc = mulc(lerpc(inn, tip, 0.9), tint * 1.1)
+    for i in range(3):
+        j = (i + 1) % 3
+        b.card([lb[i], lb[j], la], [mulc(lc, 0.8), mulc(lc, 0.8), lc], None, nfn, (b.v[lb[i]] + b.v[lb[j]]) * 0.5 - axis(zl))
+    b.fit(dims)
     return b
 
 
-def oak_lod(name, H, R, seed, cols=(OAK_TOP, OAK_IN, OAK_SUN), k=(1.0, 1.0, 1.0)):
-    b = B(name, seed, ao_dist=3.5, ao_strength=0.6)
-    lean = Vector((b.rng.uniform(-0.5, 0.5), b.rng.uniform(-0.5, 0.5), 0))
-    crown = Vector((lean.x, lean.y, H * 0.66))
-    fork = Vector((lean.x * 0.5, lean.y * 0.5, H * 0.42))
+def oak_lod(name, H, R, seed, dims, cols=(OAK_TOP, OAK_IN, OAK_SUN), k=(1.0, 1.0, 1.0), ncap=9):
+    """broadleaf stand-in: a dark closed core (the shaded inside / underside of the crown) carrying tilted, drooping-rimmed
+    foliage pads of different sizes and tints, so the crown reads as separate leaf masses with a broken outline"""
+    b = VB(name, seed, ao_dist=3.2, ao_strength=0.5)
+    rng = b.rng
+    lean = Vector((rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5), 0))
+    cz = H * 0.58; rzu = H - cz; rzd = cz - H * 0.3
+    crown = Vector((lean.x, lean.y, cz))
     r0 = 0.2 + H * 0.014
-    wind = lambda p: clamp(0.3 + 0.7 * (Vector((p.x - crown.x, p.y - crown.y, 0)).length / R) * 0.8 + 0.25 * (p.z / H) ** 2)
-    fc0 = foliage_col(b, crown, R * 1.05, *cols)
-    fc = lambda p, d: tuple(c * k[i] for i, c in enumerate(fc0(p, d)))       # k: match the detailed oaks' average rendered colour
-    trunk(b, [(0, 0, 0), tuple(fork)], [r0, r0 * 0.75], 3, H=H, capped=False)
-    b.blob(crown + Vector((-R * 0.25, R * 0.1, H * 0.05)), (R * 0.8, R * 0.72, H * 0.27), 1, 'Leaf', fc, 0.45, 1.6, windfn=wind)
-    b.blob(crown + Vector((R * 0.42, -R * 0.25, -H * 0.07)), (R * 0.66, R * 0.7, H * 0.2), 1, 'Leaf', fc, 0.45, 1.6, windfn=wind)
+    def wind(p): return clamp(0.3 + 0.56 * (Vector((p.x - crown.x, p.y - crown.y, 0)).length / R) + 0.25 * (p.z / H) ** 2)
+    def crownN(p):
+        q = p - (crown - ZUP * rzd * 0.6)
+        return Vector((q.x / R, q.y / R, q.z / (rzu + rzd * 0.6))).normalized()
+    fc0 = crown_col(crown, R, rzu, rzd, *cols)
+    fc = lambda p, d: tuple(c * k[i] for i, c in enumerate(fc0(p, d)))
+    inner = tuple(c * k[i] for i, c in enumerate(cols[1]))
+    # stem
+    base = [b.vert((math.cos(2.1 * i) * r0 * 1.15, math.sin(2.1 * i) * r0 * 1.15, 0), 0.0) for i in range(3)]
+    sa = b.vert(crown + Vector((0, 0, rzu * 0.3)), 0.2)
+    bk = C('#43362b')
+    for i in range(3):
+        b.face_auto([base[i], base[(i + 1) % 3], sa], 'Bark', [mulc(bk, 0.7), mulc(bk, 0.7), bk], (0, 0, H * 0.2))
+    # core: squat irregular bipyramid
+    ph = rng.uniform(0, 2 * pi)
+    ring = []
+    for i in range(4):
+        a = ph + pi / 2 * i + rng.uniform(-0.3, 0.3); rr = R * rng.uniform(0.56, 0.7)
+        ring.append(b.vert(crown + Vector((math.cos(a) * rr, math.sin(a) * rr, -rzd * rng.uniform(0.25, 0.55))), wind(crown) * 0.9))
+    ct = b.vert(crown + Vector((0, 0, rzu * 0.45)), wind(crown)); cb = b.vert(crown + Vector((0, 0, -rzd * 0.8)), 0.25)
+    cdark = mulc(inner, 0.72); cmid = mulc(inner, 0.95)
+    def core_n(p, fn): return (fn * 0.5 + crownN(p) * 0.5).normalized()
+    for i in range(4):
+        j = (i + 1) % 4
+        b.card([ring[i], ring[j], ct], [cmid, cmid, cmid], None, core_n, (b.v[ring[i]] + b.v[ring[j]]) * 0.5 - crown + ZUP * R)
+        b.card([ring[j], ring[i], cb], [cdark, cdark, mulc(cdark, 0.7)], None, core_n, (b.v[ring[i]] + b.v[ring[j]]) * 0.5 - crown - ZUP * R)
+    # pads: one on top, a ring around the shoulders, a staggered ring around the waist
+    nup = (ncap - 1) // 2; nlow = ncap - 1 - nup
+    dirs = [((ZUP + rvec(rng) * 0.22).normalized(), 1.2)]
+    for i in range(nup):
+        a = ph + 2 * pi * i / nup + rng.uniform(-0.3, 0.3); el = rng.uniform(0.6, 0.95)
+        dirs.append((Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el))), rng.uniform(0.85, 1.15)))
+    for i in range(nlow):
+        a = ph + 2 * pi * (i + 0.5) / nlow + rng.uniform(-0.3, 0.3); el = rng.uniform(0.02, 0.38)
+        dirs.append((Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el))), rng.uniform(0.8, 1.25)))
+    for ci, (d, size) in enumerate(dirs):
+        rc = R * 0.37 * size
+        f = rng.uniform(0.66, 0.82) if ci else 0.74
+        c = crown + Vector((d.x * R, d.y * R, d.z * (rzu if d.z > 0 else rzd))) * f
+        n = (Vector((d.x, d.y, d.z * R / rzu)).normalized() * 0.5 + ZUP * 0.62).normalized()
+        e1 = n.cross(ZUP)
+        e1 = e1.normalized() if e1.length > 1e-3 else Vector((1, 0, 0))
+        e2 = n.cross(e1)
+        tint = rng.uniform(0.78, 1.24); hy = rng.uniform(-0.15, 0.2)
+        apex_p = c + n * rc * rng.uniform(0.36, 0.52) + (e1 * rng.uniform(-0.2, 0.2) + e2 * rng.uniform(-0.2, 0.2)) * rc
+        apex = b.vert(apex_p, wind(apex_p))
+        cc = c - n * rc * 0.7
+        def nfn(p, fn, cc=cc): return (crownN(p) * 0.62 + (p - cc).normalized() * 0.14 + ZUP * 0.24).normalized()
+        ca = mulc(hue(fc(apex_p, n), hy), tint * 1.08)
+        rim = []; rcn = []; a0 = rng.uniform(0, 2 * pi)
+        for i in range(4):
+            a = a0 + pi / 2 * i + rng.uniform(-0.3, 0.3)
+            rr = rc * (rng.uniform(1.05, 1.3) if i % 2 == 0 else rng.uniform(0.8, 1.0))
+            p = c + (e1 * math.cos(a) + e2 * math.sin(a)) * rr - n * rc * rng.uniform(0.3, 0.65) - ZUP * rc * rng.uniform(0.05, 0.3)
+            rim.append(b.vert(p, wind(p)))
+            cr = mulc(hue(fc(p, (p - cc).normalized()), hy), tint)
+            rcn.append(lerpc(cr, inner, 0.12 + 0.45 * clamp((apex_p.z - p.z) / (rc * 1.3)) ** 1.5 + 0.15 * clamp((cz - p.z) / rzd)))          # rims sink into shade, more so low down
+        for i in range(4):
+            j = (i + 1) % 4
+            b.card([rim[i], rim[j], apex], [rcn[i], rcn[j], ca], None, nfn, n)
+    b.fit(dims)
     return b
 
 
@@ -1042,7 +1124,7 @@ class VB(B):
 
     def card(s, idx, ctop, cbot, nfn, ref, double=False):
         """leaf card whose front faces ref (ctop colours); double adds a back side with cbot colours"""
-        idx = list(idx); ctop = list(ctop); cbot = list(cbot)
+        idx = list(idx); ctop = list(ctop); cbot = list(cbot or ctop)
         p = [s.v[i] for i in idx]
         fn = (p[1] - p[0]).cross(p[2] - p[0])
         if fn.length < 1e-9: return
@@ -1405,7 +1487,7 @@ def oak(name, H, R, seed, dims, nlimb=4, nbig=8, nmed=13, nsmall=16, cols=(OAK_T
         q = c - crown
         out = Vector((q.x / R, q.y / R, q.z / (rzu if q.z > 0 else rzd)))
         out = out.normalized() if out.length > 1e-3 else ZUP
-        cluster(b, c, r, (15, 44, 64)[kind], out, fc, crownN, wind, tint=rng.uniform(0.92, 1.2), hy=rng.uniform(-0.12, 0.16),
+        cluster(b, c, r, (15, 44, 64)[kind], out, fc, crownN, wind, tint=rng.uniform(0.82, 1.22), hy=rng.uniform(-0.15, 0.2),
                 inner=cols[1], sub=2 if kind == 2 else 1, lk=(0.62, 0.38, 0.26)[kind], wk=0.9, core=0.86, flat=rng.uniform(0.62, 0.8) if kind else 0.85, belly=0.6 if kind else 0.85)
     b.fit(dims)
     return b
@@ -1587,11 +1669,11 @@ def main():
     veg = lambda: [
         pine('Tree_Pine_A', 17.0, 3.3, 101, (6.36, 6.09, 17.0), wk=0.4),
         pine('Tree_Pine_B', 20.0, 2.7, 102, (4.88, 5.28, 20.0), bare=0.3, tint=0.92, dz0=1.3, dz1=0.62, nb0=5.4, full=0.6, droop_k=1.3, sub_t=0.4),
-        oak('Tree_Oak_A', 12.5, 5.6, 111, (12.49, 12.17, 12.08), nlimb=4),
-        oak('Tree_Oak_B', 10.5, 5.0, 112, (10.99, 10.86, 9.9), nlimb=3, nbig=7, nmed=11, nsmall=14, cols=(C('#6a7a2c'), OAK_IN, C('#96963a'))),
+        oak('Tree_Oak_A', 12.5, 5.6, 111, (12.49, 12.17, 12.08), nlimb=4, nbig=9, nmed=19, nsmall=28),
+        oak('Tree_Oak_B', 10.5, 5.0, 112, (10.99, 10.86, 9.9), nlimb=3, nbig=8, nmed=16, nsmall=24, cols=(C('#6a7a2c'), OAK_IN, C('#96963a'))),
         birch('Tree_Birch', 11.5, 121, (4.01, 3.83, 11.95)), dead_tree('Tree_Dead', 9.0, 131, (3.78, 3.07, 8.01)),
         bush('Bush_A', 141, 1.1, (2.54, 2.08, 1.29)), bush('Bush_B', 142, 0.8, (1.84, 1.54, 0.93), cols=(C('#6f7d33'), C('#324a1c'), C('#9a9a40'))),
-        pine_lod('Tree_Pine_LOD', 17.5, 3.2, 4, 103, n=6), oak_lod('Tree_Oak_LOD', 11.5, 5.2, 113, k=(0.83, 0.7, 0.86))]
+        pine_lod('Tree_Pine_LOD', 17.5, 3.0, 5, 103, (5.1, 4.9, 17.5)), oak_lod('Tree_Oak_LOD', 11.5, 5.4, 113, (11.6, 11.2, 11.0), k=(0.8, 0.72, 0.82))]
     if VEG_ONLY:                                  # fast vegetation-only iteration build (does not touch village.glb / stats)
         builders = veg(); out = VEG_ONLY
     else:
