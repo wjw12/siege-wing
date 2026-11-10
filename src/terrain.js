@@ -40,8 +40,12 @@ export function heightRaw(x, z) {
   h = lerp(h, L.PAD.y, smooth(64, 36, dh));
   // river
   const d = Math.abs(x - riverX(z)); const rm = smooth(2900, 2000, Math.abs(z));
-  h = lerp(h, Math.min(h, L.WATER_Y + 3), smooth(260, 70, d) * 0.75 * rm);
-  h = lerp(h, L.WATER_Y - 3.2, smooth(27, 5, d) * rm);
+  // a natural channel: the width breathes along its length (kept nominal at the village bridge), and the bed has bars and pools
+  const nb = smooth(90, 260, Math.abs(z - (L.VILLAGE.z + 50))); const wv = lerp(1, clamp(1 + 0.8 * vnoise(z * 0.0057, 7.3) + 0.3 * vnoise(z * 0.021, 1.1), 0.5, 1.9), nb);
+  h = lerp(h, Math.min(h, L.WATER_Y + 3), smooth(260 * (0.6 + 0.4 * wv), 70 * wv, d) * 0.75 * rm);
+  h = lerp(h, Math.min(h, L.WATER_Y + 1.1 + 1.2 * vnoise(x * 0.02, z * 0.02)), smooth(75 * wv, 30 * wv, d) * 0.85 * rm * nb); // low, uneven banks instead of a trench
+  const inCh = smooth(34 * wv, 4 * wv, d) * rm;
+  h = lerp(h, L.WATER_Y - 3.2 + 2.5 * Math.max(0, vnoise(x * 0.028 + 3.1, z * 0.011 - 5.7)), inCh);
   return h;
 }
 
