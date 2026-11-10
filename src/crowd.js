@@ -22,7 +22,7 @@ const HERALD = [[0x9a1b1b, 0xe8d9a0], [0x1c3f95, 0xe6e6e6], [0xc49a1a, 0x1a1a1a]
 // and small bind-space turns of the leaf bones (head, weapon hand, shield arm) so no two men stand quite alike.
 const GLSL_ANIM = /* glsl */`
 attribute float aJ; attribute vec4 iPos; attribute vec4 iAnim; attribute vec4 iTint;
-uniform sampler2D uAnim; uniform float uAnimH; uniform vec4 uSwB; // joint indices: head, weapon hand, shield forearm, shield hand
+uniform sampler2D uAnim; uniform float uAnimH; uniform vec4 uSwB; uniform vec4 uSwCam; // uSwB = joint indices: head, weapon hand, shield forearm, shield hand; uSwCam = camera position, world size of a pixel at 1 m
 void swRot(inout vec2 v, float a){ float c = cos(a), s = sin(a); v = vec2(v.x * c - v.y * s, v.x * s + v.y * c); }
 mat4 swBone(float row){ float v = (row + 0.5) / uAnimH; float u = (aJ * 3.0 + 0.5) / ${NB * 3}.0;
   vec4 a = texture2D(uAnim, vec2(u, v)), b = texture2D(uAnim, vec2(u + 1.0 / ${NB * 3}.0, v)), c = texture2D(uAnim, vec2(u + 2.0 / ${NB * 3}.0, v));
@@ -31,6 +31,7 @@ void swXform(inout vec3 p, inout vec3 n){
   // variants: floor(uv.y) is a bit mask of the selections (0..5, a stable per-soldier hash of his scale) that draw this vertex; 0 = always. Others collapse to a point.
   float swK = floor(uv.y + 0.01); if (swK > 0.5 && mod(floor(swK / exp2(floor(fract(iAnim.w * 937.13) * 6.0)) + 0.005), 2.0) < 0.5) p = vec3(0.0, 1.6, 0.0);
   float swH2 = fract(iAnim.w * 5273.7), swH3 = fract(iAnim.w * 1913.3);
+  if (abs(uv.x - 0.25) < 0.1) { float d = distance(iPos.xyz, uSwCam.xyz); p.xy = vec2(-0.236, 0.868) + (p.xy - vec2(-0.236, 0.868)) * mix(1.0, clamp(d * uSwCam.w * 23.0, 1.0, 6.0), smoothstep(95.0, 170.0, d)); } // far model's spear / sword (uv.x = 0.25): widened about the grip axis so it stays near a pixel wide
   if (abs(aJ - uSwB.x) < 0.5) { p.y -= 1.52; float a = (swH2 - 0.5) * 0.62, b = (swH3 - 0.5) * 0.2; swRot(p.xz, a); swRot(n.xz, a); swRot(p.xy, b); swRot(n.xy, b); p.y += 1.52; } // head turned / cocked
   else if (abs(aJ - uSwB.y) < 0.5) { p -= vec3(-0.236, 0.868, 0.0); float a = (swH3 - 0.5) * 0.2, b = (fract(swH2 * 7.3) - 0.5) * 0.16; swRot(p.yz, a); swRot(n.yz, a); swRot(p.xz, b); swRot(n.xz, b); p += vec3(-0.236, 0.868, 0.0); } // weapon canted
   else if (abs(aJ - uSwB.z) < 0.5 || abs(aJ - uSwB.w) < 0.5) { p -= vec3(0.228, 1.18, 0.0); float a = (fract(swH3 * 5.1) - 0.5) * 0.3; swRot(p.xz, a); swRot(n.xz, a); p += vec3(0.228, 1.18, 0.0); } // shield carried a little in or out
@@ -98,7 +99,7 @@ export const crowd = {
   _meshes(scene) {
     let atlas = assets.soldierTex;
     if (!atlas) { atlas = new THREE.DataTexture(new Uint8Array([231, 231, 231, 255]), 1, 1, THREE.RGBAFormat); atlas.colorSpace = THREE.SRGBColorSpace; atlas.needsUpdate = true; }
-    const u = { uAnim: { value: this.animTex }, uAnimH: { value: this.animRows }, uSwB: { value: this.joints }, uSwTex: { value: atlas } };
+    const u = { uAnim: { value: this.animTex }, uAnimH: { value: this.animRows }, uSwB: { value: this.joints }, uSwTex: { value: atlas }, uSwCam: { value: this.uCam = new THREE.Vector4(0, 0, 0, 0.001) } };
     const mat = this.mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, vertexColors: true });
     // Atlas lookup (aUv2). Face band (v < 3/32): u moves to one of 16 face cells per soldier. Shield band (u < 3/32, v < 33/64): u moves to the
     // formation's device (hash of its tint, matched by the atlas painter), and layout-B soldiers (selection 3..5) read the row below.
@@ -108,7 +109,8 @@ export const crowd = {
           vec2 swU = aUv2; float swS = fract(iAnim.w * 937.13) * 6.0;
           if (swU.y < 0.09375) { if (swU.x < 0.0625) swU.x += floor(fract(iAnim.w * 5273.7) * 16.0) * 0.0625; }
           else if (swU.y < 0.515625 && swU.x < 0.09375) { float row = floor((swU.y - 0.09375) / 0.09375); swU.x += floor(fract(dot(iTint.rgb, vec3(19.5, 9.5, 11.5))) * 8.0) * 0.09375; if (swS >= 3.0 && (row < 0.5 || abs(row - 2.0) < 0.5)) swU.y += 0.09375; }
-          vSwUv = swU; float swD = fract(iAnim.w * 1913.3); vSwV = vec3(swD * smoothstep(1.05, 0.15, position.y), 0.84 + 0.3 * fract(swD * 9.7), 0.0); // mud toward the feet, how faded his cloth is
+          else if (swU.y > 0.765625 && swU.y < 0.796875 && swU.x < 0.0625 && swS >= 3.0) swU.x = 0.0625 - swU.x; // far model's two-tone shield: layout B swaps field and charge
+          vSwUv = swU; float swD = fract(iAnim.w * 1913.3); vSwV = vec3(swD * smoothstep(1.05, 0.15, position.y), 0.84 + 0.3 * fract(swD * 9.7), fract(swD * 23.7)); // mud toward the feet, how faded his cloth is, his own brightness when far
 `)
         .replace('#include <begin_vertex>', 'vec3 transformed = swP;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSwT; varying vec2 vSwM; varying vec2 vSwUv; varying vec3 vSwV; uniform sampler2D uSwTex;')
@@ -118,7 +120,9 @@ export const crowd = {
           vec3 swCo = dot(vSwT, vec3(0.3, 0.6, 0.1)) > 0.22 ? mix(vec3(0.05, 0.045, 0.04), vec3(0.3, 0.02, 0.02), step(0.3, vSwT.b)) : vec3(1.0, 0.9, 0.62); // counter colour of the heraldry: cream on dark tints, black / dark red on light ones
           diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(swCo, 0.15 + vSwT * 1.2, swTx.a) * vSwV.y, swCl);
           diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.62, 0.5, 0.36), vSwV.x * 0.55 * (1.0 - swMt));
-          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.4 + vSwT * 1.35), 0.5 * smoothstep(80.0, 210.0, length(vViewPosition))); // far blocks keep their heraldic colour
+          float swF = smoothstep(80.0, 210.0, length(vViewPosition));
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(0.4 + vSwT * 1.35, 0.5 + 1.1 * vSwT / max(max(vSwT.r, vSwT.g), max(vSwT.b, 0.05)), swCl), swF * (0.12 + 0.48 * swCl)); // far blocks keep their heraldic colour: the cloth brightens toward its pure hue, while helm, face and legs keep their own value
+          diffuseColor.rgb *= 1.0 + swF * (vSwV.z - 0.5) * 0.7; // and each man his own brightness, so a far block has grain
 `)
         .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = swMt * 0.9;')
         .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.86, 0.34 + 0.4 * (1.0 - min(1.0, dot(swTx.rgb, vec3(0.42)))), swMt);'); // dark texels on metal (gaps between mail rings, engraving) are dull
@@ -336,6 +340,7 @@ export const crowd = {
     // agents
     const clip = this.clip; const B = this.buckets; for (const t of B) for (const b of t) if (b) b.n = 0;
     const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    this.uCam.set(cx, cy, cz, 2 / (camera.projectionMatrix.elements[5] * Math.max(1, G.renderer.domElement.clientHeight || 900)));
     const n = this.n;
     for (let i = 0; i < n; i++) {
       let s = this.st[i]; if (s === ST.FLED) continue;

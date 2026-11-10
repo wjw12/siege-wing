@@ -7,7 +7,8 @@
 #   y  192..1056  x < 1536: shield band, 8 cells 192 wide per row (u shifted by the formation's charge): round A, round B, heater A, heater B
 #                 (192 high; the shader moves layout-B soldiers one row down) and the chest badge row (96 high)
 #                 x >= 1536: warlord face, cape, tabard, surcoat, mantle
-#   y 1056..2048  material tiles, 256 x 256 with an 8 px wrapped margin, periodic over a quarter of their width
+#   y 1056..1568  material tiles, 256 x 256 with an 8 px wrapped margin, periodic over a quarter of their width
+#   y 1568..1632  small patches, 64 x 64: counter colour (alpha 0) | field (alpha 1) for the far model's two-tone shields, gauntlet fist
 import math
 import numpy as np
 
@@ -121,23 +122,29 @@ def c_cross(x, y):
 
 
 def c_lion(x, y):
+    """lion rampant, facing left: heavy scalloped mane, open jaws, deep chest and narrow loins, clawed paws, tail curled up to a tuft"""
+    th = np.arctan2(y - .34, x + .06)
     d = U([
-        sd_seg(x, y, .12, -.38, -.12, .28, .15, .20),
-        np.hypot(x + .08, y - .44) - (.23 + .035 * np.sin(9 * np.arctan2(y - .44, x + .08))),      # mane
-        sd_circ(x, y, -.30, .63, .15),
-        sd_seg(x, y, -.34, .66, -.55, .63, .07, .05),
-        sd_seg(x, y, -.34, .50, -.50, .43, .04, .03),
-        sd_seg(x, y, -.22, .78, -.15, .88, .045, .02),
-        chain(x, y, [(-.20, .30), (-.48, .40), (-.66, .56)], [.075, .055, .065]),
-        chain(x, y, [(-.16, .10), (-.46, .08), (-.70, .18)], [.075, .055, .065]),
-        chain(x, y, [(.10, -.36), (-.08, -.60), (-.02, -.86), (-.24, -.90)], [.12, .07, .055, .055]),
-        chain(x, y, [(.02, -.30), (-.34, -.44), (-.52, -.28)], [.10, .06, .06]),
-        chain(x, y, [(.22, -.40), (.46, -.34), (.60, -.06), (.50, .22), (.62, .46), (.52, .66)], [.05, .04, .04, .04, .04, .04]),
-        sd_ell(x, y, .50, .75, .08, .13),
-        sd_seg(x, y, -.66, .56, -.80, .62, .03, .01), sd_seg(x, y, -.66, .56, -.78, .50, .03, .01),
-        sd_seg(x, y, -.70, .18, -.84, .24, .03, .01), sd_seg(x, y, -.70, .18, -.82, .12, .03, .01),
+        sd_ell(x, y, -.06, .34, .30, .33) - .035 * np.cos(7 * th),                                    # mane
+        sd_seg(x, y, .02, .12, .17, -.36, .21, .115),                                                 # chest to loins
+        sd_circ(x, y, .21, -.44, .17),                                                                # haunch
+        sd_circ(x, y, -.36, .66, .155),                                                               # head
+        sd_seg(x, y, -.42, .70, -.66, .70, .075, .055),                                               # upper jaw
+        sd_seg(x, y, -.40, .55, -.60, .50, .050, .030),                                               # lower jaw
+        sd_seg(x, y, -.48, .60, -.72, .57, .018, .012),                                               # tongue
+        sd_circ(x, y, -.24, .83, .060),                                                               # ear
+        chain(x, y, [(-.22, .34), (-.52, .40), (-.72, .56)], [.095, .070, .085]),                     # upper foreleg
+        chain(x, y, [(-.18, .12), (-.50, .08), (-.74, .16)], [.095, .070, .085]),                     # lower foreleg
+        chain(x, y, [(.14, -.44), (-.06, -.64), (-.04, -.88), (-.28, -.92)], [.13, .085, .070, .075]),  # standing hind leg
+        chain(x, y, [(.06, -.34), (-.34, -.46), (-.56, -.30)], [.11, .075, .080]),                    # striding hind leg
+        chain(x, y, [(.33, -.44), (.58, -.34), (.70, -.06), (.58, .20), (.70, .44), (.60, .62)], [.060, .050, .050, .050, .050, .050]),
+        sd_ell(x, y, .57, .76, .105, .16),                                                            # tail tuft
+        sd_seg(x, y, -.72, .56, -.88, .66, .032, .010), sd_seg(x, y, -.72, .56, -.90, .54, .032, .010), sd_seg(x, y, -.72, .56, -.84, .44, .032, .010),
+        sd_seg(x, y, -.74, .16, -.90, .25, .032, .010), sd_seg(x, y, -.74, .16, -.92, .13, .032, .010), sd_seg(x, y, -.74, .16, -.86, .03, .032, .010),
+        sd_seg(x, y, -.28, -.92, -.42, -.86, .030, .010), sd_seg(x, y, -.28, -.92, -.44, -.96, .030, .010),
+        sd_seg(x, y, -.56, -.30, -.70, -.22, .030, .010), sd_seg(x, y, -.56, -.30, -.72, -.34, .030, .010),
     ])
-    return np.maximum(d, -sd_circ(x, y, -.34, .68, .028))
+    return np.maximum(d, -sd_circ(x, y, -.41, .71, .030))
 
 
 def c_eagle(x, y):
@@ -326,7 +333,7 @@ def p_gold(A, B):
 
 def p_gilt(A, B):
     """blued plate with gilt engraving - full colour (the warlord's plate is white in vertex colour)"""
-    steel = lin((.36, .38, .46)); gold = lin((.98, .76, .30))
+    steel = lin((.60, .64, .76)); gold = lin((1.0, .80, .30))
     v = (.82 + .36 * fbm(A, B, 4, 48, 3, 71)) * (.85 + .3 * fbm(A, B, 8, 8, 3, 72))
     rgb = steel[None, None, :] * v[..., None]
     f1 = np.sin(2 * PI * (A * 4 + .22 * np.sin(2 * PI * B * 8)))
@@ -335,7 +342,7 @@ def p_gilt(A, B):
     leaf = msk(np.hypot(np.mod(A * 8, 1) - .5, (np.mod(B * 8 + .5 * np.floor(A * 8), 1) - .5) * 1.8) - .11, .06)
     g = np.abs(np.mod(B * 4, 1) - .5)
     bandm = smooth(.40, .43, g)
-    orn = np.clip(np.maximum(vine * .9, leaf) * (1 - bandm) + bandm, 0, 1)
+    orn = np.clip(np.maximum(vine, leaf) * (1 - bandm) + bandm, 0, 1)
     gv = (.8 + .4 * fbm(A, B, 32, 32, 2, 73)) * (1 - .45 * msk(np.abs(g - .47) - .008, .01))
     rv, _ = rivets(A, B, 16, 4, .5, .010)
     gv = gv * (1 - .5 * rv * bandm)
@@ -373,6 +380,21 @@ def p_felt(A, B):
 def p_feather(A, B):
     f = np.abs(np.mod(A * 4, 1) - .5)
     v = 1 + .14 * np.sin(2 * PI * (B * 40 + f * 30)) + .3 * smooth(.04, .0, f)
+    return grey(norm(v)), one(A)
+
+
+def p_cnt(A, B):
+    """flat counter-colour patch (alpha 0) for the far model's two-tone shields; 'fld' beside it is the tinted one (alpha 1).
+    crowd.js mirrors u about their common edge for layout-B soldiers, which swaps the two"""
+    return grey(one(A)), np.zeros_like(A)
+
+
+def p_gaunt(A, B):
+    """gauntlet fist: a = round the fist (knuckle plate at .5), b = across the four finger lames"""
+    Ac = np.clip(A, 0, 1); Bc = np.clip(B, 0, 1)
+    gr = np.maximum.reduce([msk(np.abs(Bc - g) - .02, .03) for g in (.14, .32, .50, .68, .86)])
+    v = (1 - .55 * gr) * (1 + .30 * np.exp(-((Ac - .5) / .10) ** 2)) * (1 - .25 * smooth(.2, .5, np.abs(Ac - .5)))
+    v *= 1 + .5 * msk(np.hypot(Ac - .5, (np.mod(Bc / .18 + .28, 1) - .5) * .18) - .035, .02)
     return grey(norm(v)), one(A)
 
 
@@ -484,7 +506,8 @@ FACES = [('fair', 'brown', 'stub', 0), ('pale', 'blond', 'none', 0), ('tan', 'bl
          ('brown', 'black', 'none', 0), ('ruddy', 'blond', 'moust', 0), ('fair', 'black', 'full', 0), ('pale', 'auburn', 'stub', 0),
          ('dark', 'black', 'stub', 0), ('tan', 'dbrown', 'none', 0), ('olive', 'grey', 'moust', 1), ('fair', 'brown', 'goat', 0)]
 FACE_B0 = 32.0 / 176.0          # the face proper fills b = FACE_B0 .. 1 (x +-70 mm, z 1565 .. 1745 mm); below it: skin patch | hair patch
-SKIN_PT = (.22, .068); HAIR_PT = (.78, .068)
+SKIN_PT = (.12, .068); HAIR_PT = (.88, .068)
+FING = (.275, .575, .008, .140)   # between them: the fingers of a closed fist (a = round the fist, knuckles at .5; b = across the four fingers)
 
 
 def p_face(A, B, tone, hair, beard, old, seed, scar=0, res=1.0):
@@ -553,7 +576,13 @@ def p_face(A, B, tone, hair, beard, old, seed, scar=0, res=1.0):
     col = mixc(col, hair_rgb, smooth(1738, 1742, Z) * .9)
     # patches under the face
     strip = Bc < 26.0 / 176.0
-    col = np.where(strip[..., None], np.where((Ac < .5)[..., None], skin * .92, hc * 1.0) * np.ones_like(col), col)
+    col = np.where(strip[..., None], np.where((Ac < .75)[..., None], skin * .92, hc * 1.0) * np.ones_like(col), col)
+    fa = (Ac - .25) / .35; fb = Bc * 176.0 / 26.0
+    fing = strip & (fa > 0) & (fa < 1)
+    gr = np.maximum.reduce([msk(np.abs(fb - g) - .022, .035) for g in (.31, .50, .69)])
+    fv = (1 - .58 * gr) * (1 + .10 * np.exp(-((fa - .5) / .12) ** 2)) * (1 - .22 * smooth(.25, .5, np.abs(fa - .5)))
+    fv *= 1 - .25 * np.maximum(smooth(.20, .08, fb), smooth(.80, .92, fb))
+    col = np.where(fing[..., None], skin[None, None, :] * (.92 * fv)[..., None], col)
     col = np.where(((Bc >= 26.0 / 176.0) & (Bc < FACE_B0))[..., None], skin[None, None, :] * np.ones_like(col), col)
     return col, one(A)
 
@@ -581,7 +610,11 @@ _tiles = [('white', p_white), ('mail', p_mail), ('gamb', p_gamb), ('cloth', p_cl
           ('feather', p_feather), ('steel', p_steel)]
 for _i, (_n, _f) in enumerate(_tiles):
     _add(_n, (_i % 8) * 256, 1056 + (_i // 8) * 256, 256, 256, _f)
+_add('cnt', 0, 1568, 64, 64, p_cnt)
+_add('fld', 64, 1568, 64, 64, p_white)
+_add('gaunt', 128, 1568, 64, 64, p_gaunt)
 WHITE_UV = CH['white'].uv(.5, .5)
+CNT_UV = CH['cnt'].uv(.5, .5); FLD_UV = CH['fld'].uv(.5, .5)
 
 
 def _render(img, x, y, w, h, pad, fn, args):
