@@ -3,16 +3,25 @@
 #   blender.exe -b -P soldiers.py -- preview -> also render preview sheets to tools/blender/preview/sold_*.png
 # Contract with src/crowd.js: 16-bone rig, every vertex rigidly bound to ONE bone, albedo in vertex colour,
 # uv.x = heraldic-tint cloth mask, uv.y = variant mask + 0.5 * metal, meshes <Type> / <Type>_LOD1, clips in CLIPS.
-# Variants: every soldier draws one of six "selections" sel = 0..5 (helmet = sel % 3, shield face = sel // 3), picked in the
+# Variants: every soldier draws one of six "selections" sel = 0..5 (helmet = sel % 3, shield layout = sel // 3), picked in the
 # shader from a per-instance hash. floor(uv.y) is a bit mask: 0 = always drawn, otherwise bit sel must be set or the
-# vertex is collapsed. HV(h) / SV(s) below give the masks for helmet h / shield face s.
+# vertex is collapsed. HV(h) / SV(s) below give the masks for helmet h / shield face s. (The two shield layouts are no longer
+# separate geometry: the shader reads layout B one atlas row below layout A, so SV is unused but kept for the mask scheme.)
 #   blender.exe -b -P soldiers.py -- pv      -> variant sheet tools/blender/preview/sold_variants.png (no export)
+#   blender.exe -b -P soldiers.py -- atlas   -> also repaint assets/textures/soldiers/atlas.png (soldier_atlas.py; "atlasonly" stops there)
+# Texture: a second UV set (TEXCOORD_1, v from the top) points every face corner into the atlas. A colour carries its material
+# (Col.mat -> MATS -> chart); mb.tex overrides it for unique charts. Faces live in the atlas' face band, shield devices in its shield
+# band - the shader shifts those per soldier / per formation, see soldier_atlas.py for the layout.
+# Extra clip IdleB (same length as Idle) is a second idle stance that crowd.js gives to some of the men.
 import bpy, math, sys, os, random, json
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import soldier_atlas as SA
 
 ROOT = r"C:\Users\shaoy\game"
 OUT = ROOT + r"\assets\models\soldiers.glb"
+ATLAS = ROOT + r"\assets\textures\soldiers\atlas.png"
 PREV = ROOT + r"\tools\blender\preview"
 STATS = ROOT + r"\tools\blender\soldiers_stats.json"
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
@@ -23,16 +32,33 @@ FPS = 24
 X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 PI = math.pi
 
-# ----------------------------------------------------------------------------- colours (sRGB)
-STEEL = (.66, .68, .72); DSTEEL = (.40, .41, .45); SKIN = (.82, .62, .50); LEATH = (.40, .26, .15)
-DLEATH = (.19, .13, .09); WOOD = (.47, .34, .21); TINT = (.93, .91, .87); HOSE = (.45, .38, .29)
-GAMB = (.70, .62, .47); GOLD = (.90, .70, .22); FUR = (.27, .20, .14); IRON = (.20, .20, .22)
-ARROW = (.80, .70, .50); BLACK = (.04, .04, .04); MAIL = (.47, .48, .52); CREAM = (.86, .82, .70)
-GHOSE = (.33, .37, .24); CRIMSON = (.58, .07, .07); FEATH = (.90, .88, .82); PLATE = (.26, .26, .30); BOOT = (.30, .20, .13)
+# ----------------------------------------------------------------------------- colours (sRGB) + their material
+class Col(tuple):
+    def __new__(cls, rgb, mat=None):
+        o = tuple.__new__(cls, rgb); o.mat = mat
+        return o
+
+
+def C_(r, g, b, mat=None):
+    return Col((r, g, b), mat)
+
+
+STEEL = C_(.66, .68, .72, 'steel'); DSTEEL = C_(.40, .41, .45, 'steel'); LEATH = C_(.40, .26, .15, 'leather')
+DLEATH = C_(.19, .13, .09, 'leather'); WOOD = C_(.47, .34, .21, 'wood'); TINT = C_(.93, .91, .87, 'cloth'); HOSE = C_(.45, .38, .29, 'hose')
+GAMB = C_(.70, .62, .47, 'gamb'); GOLD = C_(.90, .70, .22, 'gold'); FUR = C_(.27, .20, .14, 'fur'); IRON = C_(.20, .20, .22, 'steel')
+ARROW = C_(.80, .70, .50, 'wood'); BLACK = C_(.04, .04, .04); MAIL = C_(.47, .48, .52, 'mail'); CREAM = C_(.86, .82, .70, 'cloth')
+GHOSE = C_(.33, .37, .24, 'hose'); CRIMSON = C_(.58, .07, .07, 'felt'); FEATH = C_(.90, .88, .82, 'feather'); BOOT = C_(.30, .20, .13, 'leather')
+SKIN = C_(1.0, 1.0, 1.0, 'skin')        # skin tone, hair colour and the face itself come from the per-soldier face cell of the atlas
+HAIR = C_(1.0, 1.0, 1.0, 'hair')
+TABARD = Col(TINT, 'tabard'); SURCOAT = Col(TINT, 'surcoat'); MANTLE = Col(TINT, 'mantle')
+GILT = C_(.96, .96, .96, 'gilt')        # warlord's plate: blued steel + gilt engraving painted in the atlas
+PLATE = GILT
+HELM = Col(STEEL, 'helm'); WHITE = C_(1.0, 1.0, 1.0)
+ARMOR = Col(STEEL, 'plate'); DARMOR = Col(DSTEEL, 'plate')      # articulated, riveted plate (STEEL itself is plain: blades, bosses)
 
 
 def sh(c, k):
-    return tuple(min(1.0, v * k) for v in c)
+    return Col(tuple(min(1.0, v * k) for v in c), getattr(c, 'mat', None))
 
 
 def lin(c):
@@ -54,21 +80,101 @@ def _pw(c, e):
     return math.copysign(abs(c) ** e, c)
 
 
+# ----------------------------------------------------------------------------- texture mapping
+class T:
+    """where a material sits in the atlas. mode 'tile': periodic chart (1 m across, period 1/4), 'abs': b = height between z,
+    'pt': one point (skin / hair patches), 'planar': a/b from the vertex position (o + ua * a * su ...)"""
+
+    def __init__(s, chart, mode='tile', z=None, pt=None, planar=None, uw=1.0, a0=0.0, rect=(0, 1, 0, 1)):
+        s.ch = SA.CH[chart]; s.mode = mode; s.z = z; s.pt = pt; s.planar = planar; s.uw = uw; s.a0 = a0; s.rect = rect
+
+    def at(s, a, b):
+        r = s.rect
+        return s.ch.uv(r[0] + (r[1] - r[0]) * a, r[2] + (r[3] - r[2]) * b)
+
+    def strip(s, circ, t0, t1):
+        """-> f(sfrac, t) for a tube whose sections run t0..t1 (metres) with the given girth"""
+        if s.mode == 'pt':
+            return lambda sf, t: s.ch.uv(*s.pt)
+        if s.mode == 'planar':       # left to MB.face, which maps from the vertex positions
+            return None
+        if s.mode == 'abs':
+            z0, z1 = s.z
+            return lambda sf, t: s.at(s.a0 + sf * s.uw, min(1.0, max(0.0, (t - z0) / (z1 - z0))))
+        if s.mode == 'fit':          # one turn = the chart's width, the strip's own length = its height
+            return lambda sf, t: s.at(sf, min(1.0, max(0.0, (t - t0) / max(1e-6, t1 - t0))))
+        uw = min(4, max(1, round(circ / .25))) / 4.0
+        k = 1.0 if (t1 - t0) <= 1.0 else 1.0 / (t1 - t0)
+        return lambda sf, t: s.at(sf * uw, min(1.0, max(0.0, (t - t0) * k)))
+
+    def flat(s, pts):
+        """planar mapping of a polygon / box face"""
+        if s.mode == 'pt':
+            return [s.ch.uv(*s.pt) for p in pts]
+        if s.mode == 'planar':
+            o, ua, va, su, sv = s.planar
+            return [s.at((Vector(p) - o).dot(ua) / su + .5, (Vector(p) - o).dot(va) / sv + .5) for p in pts]
+        if s.mode in ('abs', 'fit'):
+            return [s.at(.37, .6) for p in pts]
+        pts = [Vector(p) for p in pts]
+        n = Vector((0, 0, 0))
+        for i in range(len(pts)):
+            a, b = pts[i], pts[(i + 1) % len(pts)]
+            n += Vector(((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y)))
+        n = n.normalized() if n.length > 1e-9 else Z
+        ua = (Z - n * n.dot(Z)) if abs(n.z) < .9 else (Y - n * n.dot(Y))
+        ua = ua.normalized(); va = n.cross(ua)
+        aa = [p.dot(va) for p in pts]; bb = [p.dot(ua) for p in pts]
+        a0, b0 = min(aa), min(bb)
+        k = 1.0 / max(1.0, max(aa) - a0 + .04, max(bb) - b0 + .04)
+        return [s.at(.02 + (a - a0) * k, .02 + (b - b0) * k) for a, b in zip(aa, bb)]
+
+
+_MATS = {}
+
+
+def mat_T(col):
+    m = getattr(col, 'mat', None)
+    if m is None:
+        return None
+    if m not in _MATS:
+        if m in ('tabard', 'surcoat'):
+            _MATS[m] = T(m, 'abs', z=(.5, 1.55))
+        elif m == 'mantle':
+            _MATS[m] = T(m, 'abs', z=(1.36, 1.60))
+        elif m == 'helm':
+            _MATS[m] = T(m, 'fit')
+        elif m == 'skin':
+            _MATS[m] = T('face', 'pt', pt=SA.SKIN_PT)
+        elif m == 'hair':
+            _MATS[m] = T('face', 'pt', pt=SA.HAIR_PT)
+        else:
+            _MATS[m] = T(m)
+    return _MATS[m]
+
+
 # ----------------------------------------------------------------------------- mesh builder
 class MB:
     def __init__(s):
         s.v = []; s.c = []; s.t = []; s.m = []; s.b = []; s.k = []
-        s.f = []; s.ff = []; s.fo = []; s.fk = []
+        s.f = []; s.ff = []; s.fo = []; s.fk = []; s.fuv = []; s.fov = []
         s.var = 0         # variant mask given to everything added while it is set (0 = always drawn)
         s.occ = True      # faces added while True occlude in the AO bake (gear is switched off)
         s.flat = False    # faces added while True are flat shaded
+        s.tex = None      # T that overrides the colours' own material for strips and polygons added while it is set
 
     def add(s, p, col, bone, tint=0.0, metal=0.0):
         s.v.append(tuple(p)); s.c.append(col); s.b.append(bone); s.t.append(tint); s.m.append(metal); s.k.append(s.var)
         return len(s.v) - 1
 
-    def face(s, idx, flat=None):
-        s.f.append(tuple(idx)); s.ff.append(s.flat if flat is None else flat); s.fo.append(s.occ); s.fk.append(s.var)
+    def face(s, idx, flat=None, uv=None, ov=None):
+        """uv: atlas uv per corner (default: flat-mapped with the first vertex' material); ov: per-face colour/tint/metal override"""
+        idx = tuple(idx)
+        if uv is None:
+            tx = s.tex or mat_T(s.c[idx[0]])
+            uv = tx.flat([s.v[i] for i in idx]) if tx else [SA.WHITE_UV] * len(idx)
+        s.f.append(idx); s.ff.append(s.flat if flat is None else flat); s.fo.append(s.occ); s.fk.append(s.var)
+        s.fuv.append(list(uv)); s.fov.append(ov)
 
     def ring(s, c, u, v, ru, rv, n, phase, col, bone, tint=0.0, metal=0.0, fn=None, sq=1.0):
         idx = []
@@ -87,31 +193,63 @@ class MB:
             idx.append(s.add(p, d['col'], d['bone'], d['tint'], d['metal']))
         return idx
 
-    def bridge(s, a, b, flip=False):
+    def bridge(s, a, b, flip=False, mp=None, ta=0.0, tb=0.0):
+        """mp(sfrac, t) -> uv; the seam sits opposite ring vertex 0"""
         n = len(a)
         for i in range(n):
             j = (i + 1) % n
             q = (a[i], a[j], b[j], b[i])
-            s.face(tuple(reversed(q)) if flip else q)
+            uv = None
+            if mp:
+                s0 = ((i + n // 2) % n) / n; s1 = s0 + 1.0 / n
+                uv = [mp(s0, ta), mp(s1, ta), mp(s1, tb), mp(s0, tb)]
+            elif s.tex is None and mat_T(s.c[b[i]]) is None:
+                uv = [SA.WHITE_UV] * 4
+            if flip:
+                q = tuple(reversed(q)); uv = list(reversed(uv)) if uv else None
+            s.face(q, uv=uv)
 
-    def strip(s, secs, n, u, v, bone=None, cap0=False, cap1=False, phase=0.0, flip=False, tint=0.0, metal=0.0, comp=True):
+    def cap(s, idx, tx, flip=False):
+        n = len(idx)
+        if tx is None:
+            uv = [SA.WHITE_UV] * n
+        elif tx.mode == 'tile':
+            uv = [tx.at(.125 + .09 * math.cos(2 * PI * i / n), .125 + .09 * math.sin(2 * PI * i / n)) for i in range(n)]
+        else:
+            uv = tx.flat([s.v[i] for i in idx])
+        if flip:
+            idx = tuple(reversed(idx)); uv = list(reversed(uv))
+        s.face(tuple(idx), uv=uv)
+
+    def strip(s, secs, n, u, v, bone=None, cap0=False, cap1=False, phase=0.0, flip=False, tint=0.0, metal=0.0, comp=True, ts=None):
         """sections (centre, ru, rv, col[, opts]) advancing along u x v; opts: bone tint metal fn sq split"""
         k = _k(n) if comp else 1.0
+        if ts is None:
+            ts = [0.0]
+            for a, b in zip(secs[:-1], secs[1:]):
+                ts.append(ts[-1] + (Vector(b[0]) - Vector(a[0])).length)
+        txs = [s.tex or mat_T(sec[3]) for sec in secs]
+        ext = {}
+        for tx, sec, t in zip(txs, secs, ts):
+            if tx is not None:
+                e = ext.setdefault(id(tx), [0.0, t, t])
+                e[0] = max(e[0], 2 * PI * math.sqrt((sec[1] ** 2 + sec[2] ** 2) / 2) * k); e[1] = min(e[1], t); e[2] = max(e[2], t)
+        mps = [tx.strip(*ext[id(tx)]) if tx is not None else None for tx in txs]
         prev = first = None
-        for sec in secs:
+        for q, sec in enumerate(secs):
             c, ru, rv, col = sec[:4]
             o = sec[4] if len(sec) > 4 else {}
             idx = s.ring(Vector(c), u, v, ru * k, rv * k, n, phase, col, o.get('bone', bone), o.get('tint', tint),
                          o.get('metal', metal), o.get('fn'), o.get('sq', 1.0))
             if prev is not None and not o.get('split'):
-                s.bridge(prev, idx, flip)
+                s.bridge(prev, idx, flip, mps[q], ts[q - 1], ts[q])
             if first is None:
                 first = idx
             prev = idx
         if cap0:
-            s.face(tuple(first) if flip else tuple(reversed(first)))
+            s.cap(first, txs[0], not flip)
         if cap1:
-            s.face(tuple(reversed(prev)) if flip else tuple(prev))
+            s.cap(prev, txs[-1], flip)
 
     def loft(s, rings, n, cap_bot=False, cap_top=False, phase=0.0, flip=False):
         """horizontal rings, ascending z: (z, rx, ry, bone, col[, opts]); opts also x, y"""
@@ -121,7 +259,7 @@ class MB:
             o = dict(r[5]) if len(r) > 5 else {}
             o['bone'] = bone
             secs.append(((o.get('x', 0), o.get('y', 0), z), rx, ry, col, o))
-        s.strip(secs, n, X, Y, None, cap_bot, cap_top, phase, flip)
+        s.strip(secs, n, X, Y, None, cap_bot, cap_top, phase, flip, ts=[r[0] for r in rings])
 
     def cyl(s, p0, p1, r0, r1, n, col, bone, tint=0.0, metal=0.0, cap0=False, cap1=False, up=None, col1=None):
         p0 = Vector(p0); p1 = Vector(p1)
@@ -130,22 +268,31 @@ class MB:
         u = (ref - d * ref.dot(d)).normalized()
         v = d.cross(u)
         r0 = r0 if isinstance(r0, tuple) else (r0, r0)
+        L = (p1 - p0).length
+        tx = s.tex or mat_T(col)
+        mp = tx.strip(2 * PI * max(r0), 0.0, L) if tx else None
         a = s.ring(p0, u, v, r0[0], r0[1], n, 0.0, col, bone, tint, metal)
         if cap0:
-            s.face(tuple(reversed(a)))
+            s.cap(a, tx, True)
         if r1 == 0:
             ap = s.add(p1, col1 or col, bone, tint, metal)
             for i in range(n):
-                s.face((a[i], a[(i + 1) % n], ap))
+                s0 = ((i + n // 2) % n) / n
+                s.face((a[i], a[(i + 1) % n], ap), uv=[mp(s0, 0.0), mp(s0 + 1.0 / n, 0.0), mp(s0 + .5 / n, L)] if mp else [SA.WHITE_UV] * 3)
         else:
             r1 = r1 if isinstance(r1, tuple) else (r1, r1)
             b = s.ring(p1, u, v, r1[0], r1[1], n, 0.0, col1 or col, bone, tint, metal)
-            s.bridge(a, b)
+            s.bridge(a, b, False, mp, 0.0, L)
             if cap1:
-                s.face(tuple(b))
+                s.cap(b, tx)
 
     def tube(s, pts, r, n, col, bone, tint=0.0, metal=0.0, side=X, cap0=False, cap1=False, cols=None):
         prev = first = None
+        ts = [0.0]
+        for a, b in zip(pts[:-1], pts[1:]):
+            ts.append(ts[-1] + (Vector(b) - Vector(a)).length)
+        tx = s.tex or mat_T(col)
+        mp = tx.strip(2 * PI * (max(r) if isinstance(r, (list, tuple)) else r), 0.0, ts[-1]) if tx else None
         for i, p in enumerate(pts):
             p = Vector(p)
             t = (Vector(pts[min(i + 1, len(pts) - 1)]) - Vector(pts[max(i - 1, 0)])).normalized()
@@ -153,14 +300,14 @@ class MB:
             rr = r[i] if isinstance(r, (list, tuple)) else r
             idx = s.ring(p, u, v, rr, rr, n, 0.0, cols[i] if cols else col, bone, tint, metal)
             if prev:
-                s.bridge(prev, idx)
+                s.bridge(prev, idx, False, mp, ts[i - 1], ts[i])
             else:
                 first = idx
             prev = idx
         if cap0:
-            s.face(tuple(reversed(first)))
+            s.cap(first, tx, True)
         if cap1:
-            s.face(tuple(prev))
+            s.cap(prev, tx)
 
     def box(s, c, size, col, bone, tint=0.0, metal=0.0, rot=None):
         c = Vector(c); h = Vector(size) * 0.5
@@ -170,12 +317,15 @@ class MB:
             if rot is not None:
                 o = rot @ o
             ids.append(s.add(c + o, col, bone, tint, metal))
+        tx = mat_T(col)
         for q in ((1, 3, 7, 5), (0, 4, 6, 2), (2, 6, 7, 3), (0, 1, 5, 4), (4, 5, 7, 6), (0, 2, 3, 1)):
-            s.face(tuple(ids[k] for k in q))
+            s.face(tuple(ids[k] for k in q), uv=tx.flat([s.v[ids[k]] for k in q]) if tx else [SA.WHITE_UV] * 4)
 
     def poly(s, pts, col, bone, tint=0.0, metal=0.0, flip=False):
         ids = [s.add(Vector(p), col, bone, tint, metal) for p in pts]
-        s.face(tuple(reversed(ids)) if flip else tuple(ids), flat=True)
+        tx = s.tex or mat_T(col)
+        uv = tx.flat(pts) if tx else [SA.WHITE_UV] * len(ids)
+        s.face(tuple(reversed(ids)) if flip else tuple(ids), flat=True, uv=list(reversed(uv)) if flip else uv)
 
     def plate(s, pts, nrm, t, colf, colb, bone, tintf=0.0, metal=0.0, tintb=0.0):
         """two-sided flat polygon; pts CCW seen from the +nrm side"""
@@ -185,6 +335,17 @@ class MB:
 
     def tris(s, sel=None):
         return sum(len(f) - 2 for f, k in zip(s.f, s.fk) if sel is None or k == 0 or (k >> sel) & 1)
+
+    def remap(s, f0, pred, tx, ov=None):
+        """re-map the faces added since f0 whose vertices all satisfy pred(p) through tx (planar), optionally overriding their colour"""
+        n = 0
+        for fi in range(f0, len(s.f)):
+            ps = [Vector(s.v[i]) for i in s.f[fi]]
+            if all(pred(p) for p in ps):
+                s.fuv[fi] = tx.flat(ps); n += 1
+                if ov:
+                    s.fov[fi] = ov
+        return n
 
 
 # ----------------------------------------------------------------------------- body, LOD0
@@ -203,8 +364,7 @@ def torso(mb, sp, n=10):
     tc, tt, tm = sp['torso']
     zh, sc, st, sm, fl = sp['skirt']
     bc, bm = sp.get('belt', (DLEATH, 0))
-    qf = (lambda i, p: {'col': sh(tc, .80)} if i % 2 else None) if sp.get('quilt') else None
-    T = dict(tint=tt, metal=tm, sq=.82, fn=qf)
+    T = dict(tint=tt, metal=tm, sq=.82)
     S = dict(tint=st, metal=sm, sq=.88)
     Bt = dict(metal=bm, sq=.88)
     mb.loft([
@@ -223,7 +383,14 @@ def torso(mb, sp, n=10):
         mb.box((0, -.113 * bk - .006, 1.065), (.045, .014, .04), GOLD if bm else STEEL, 'Spine', metal=1)
 
 
-def legs(mb, sp, n=6):
+def badge(mb, f0, lod=0):
+    """the chest of a heraldic coat shows the formation's device: re-map its front faces into the badge row of the atlas"""
+    tx = T('badge', 'planar', planar=(Vector((0, 0, 1.3375 if lod == 0 else 1.32)), X, Z, .32 if lod == 0 else .26, .235 if lod == 0 else .20),
+           rect=(.193, .807, 0, 1))
+    return mb.remap(f0, lambda p: p.y < -.05 and abs(p.x) < .17 and 1.21 < p.z < 1.47, tx)
+
+
+def legs(mb, sp, n=8):
     tc, tm = sp['thigh']; sc, sm = sp['shin']; bc, bm = sp['boot']
     bz = sp.get('boot_z', .34)
     for side, sx in (('L', 1), ('R', -1)):
@@ -240,10 +407,10 @@ def legs(mb, sp, n=6):
         F = dict(metal=bm)
         mb.strip([((x, .068, .045), .033, .040, sh(bc, .8), F), ((x, .0, .060), .043, .058, bc, F),
                   ((x, -.11, .036), .047, .034, bc, F), ((x, -.195, .023), .034, .021, sh(bc, .9), F)],
-                 n, X, Z, FT, cap0=True, cap1=True)
+                 6, X, Z, FT, cap0=True, cap1=True)
 
 
-def arms(mb, sp, n=6):
+def arms(mb, sp, n=8):
     ac, am = sp['arm']; fc, fm = sp['forearm']; hc, hm = sp['hand']
     xa = _arm_x(sp)
     for side, sx in (('L', 1), ('R', -1)):
@@ -266,43 +433,65 @@ def arms(mb, sp, n=6):
         r = [(0.80, .028, .036, HA, sh(hc, .85), O), (0.86, .039, .049, HA, hc, O), (0.928, .036, .042, HA, hc, O)]
         if sp.get('cuff'):
             r.append((0.995, .050, .054, HA, sh(hc, 1.1), O))
-        mb.loft(r, n, cap_bot=True)
+        mb.loft(r, 6, cap_bot=True)
 
 
-def head(mb, sp, n=8, top=False):
+HEAD_RINGS = [(1.545, .046, .050, .004), (1.588, .064, .074, -.010), (1.635, .075, .088, -.008), (1.695, .079, .094, -.004), (1.752, .076, .090, 0.0)]
+
+
+def _head_at(z):
+    R = HEAD_RINGS
+    for a, b in zip(R[:-1], R[1:]):
+        if z <= b[0]:
+            k = (z - a[0]) / (b[0] - a[0])
+            return tuple(a[i] + (b[i] - a[i]) * k for i in (1, 2, 3))
+    return R[-1][1:]
+
+
+def face_T(chart='face'):
+    return T(chart, 'planar', planar=(Vector((0, 0, 1.655)), X, Z, .14, .18), rect=(0, 1, SA.FACE_B0, 1))
+
+
+def face_shell(mb, chart='face'):
+    """the face: a shell with brow, eye sockets, nose, lips and chin set into the coif, planar-mapped into a face cell of the atlas"""
+    k = _k(8)
+    th = (-55, -30, -11, 0, 11, 30, 55)
+    rows = [(1.568, None), (1.586, (.010, .008, .002)), (1.607, (.008, .007, .003)), (1.628, (.014, .008, .004)), (1.641, (.032, .010, .005)),
+            (1.672, (.010, -.002, -.003)), (1.690, (.010, .010, .007)), (1.745, None)]
+    grid = []
+    for z, bump in rows:
+        rx, ry, yc = _head_at(z)
+        row = []
+        for j, t in enumerate(th):
+            a = math.radians(t); c = abs(j - 3)
+            f, off = (.90, 0.0) if (bump is None or c == 3) else (1.0, .003 + bump[c])
+            row.append(mb.add((rx * k * math.sin(a) * f, yc - ry * k * math.cos(a) * f - off, z), SKIN, 'Head'))
+        grid.append(row)
+    old = mb.tex; mb.tex = face_T(chart)
+    for i in range(len(rows) - 1):
+        for j in range(len(th) - 1):
+            mb.face((grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]))
+    mb.tex = old
+
+
+def head(mb, sp, n=8, top=False, chart='face'):
     wc, wt, wm = sp['wrap']
     W = dict(tint=wt, metal=wm)
-    brd = sp.get('beard')
-
-    def face(k):
-        def fn(i, p):
-            if i not in (0, 1, n - 1):
-                return None
-            c = SKIN
-            if k == 0:
-                c = brd or sh(SKIN, .9)
-            if k == 2:
-                c = sh(SKIN, .60) if i else sh(SKIN, .84)
-            r = {'col': c, 'tint': 0, 'metal': 0}
-            if k == 1 and i == 0:
-                r['p'] = p + Vector((0, -.017, -.006))
-            return r
-        return fn
     mb.loft([(1.49, .052, .056, 'Chest', sh(wc, .8), W), (1.56, .047, .052, 'Head', wc, W)], 6)     # neck
-    r = [(1.545, .046, .050, 'Head', sh(wc, .85), dict(W, y=.004)),
-         (1.588, .064, .074, 'Head', wc, dict(W, y=-.010, fn=face(0))),
-         (1.635, .075, .088, 'Head', wc, dict(W, y=-.008, fn=face(1))),
-         (1.695, .079, .094, 'Head', wc, dict(W, y=-.004, fn=face(2))),
-         (1.752, .076, .090, 'Head', wc, W)]
+    r = [(z, rx, ry, 'Head', sh(wc, .85) if i == 0 else wc, dict(W, y=y)) for i, (z, rx, ry, y) in enumerate(HEAD_RINGS)]
     if top:
         r.append((1.80, .050, .060, 'Head', wc, W))
     mb.loft(r, n, cap_top=top, phase=-PI / 2)
+    face_shell(mb, chart)
 
 
 def body(mb, sp):
+    f0 = len(mb.f)
     torso(mb, sp); legs(mb, sp); arms(mb, sp)
+    if sp.get('badge'):
+        badge(mb, f0)
     if 'wrap' in sp:
-        head(mb, sp)
+        head(mb, sp, chart=sp.get('face', 'face'))
 
 
 # ----------------------------------------------------------------------------- body, LOD1
@@ -311,11 +500,15 @@ def body1(mb, sp):
     tc, tt, tm = sp['torso']
     zh, sc, st, sm, fl = sp['skirt']
     T = dict(tint=tt, metal=tm); S = dict(tint=st, metal=sm)
-    mb.loft([(zh, .216 * bk * fl, .168 * bk * fl, 'Hips', sh(sc, .70), dict(S, fn=_hem)),
-             (1.06, .143 * bk, .104 * bk, 'Spine', sh(sc, .62), S),
-             (1.06, .143 * bk, .104 * bk, 'Spine', sh(tc, .78), dict(T, split=True)),
-             (1.42, .182 * bk, .116 * bk, 'Chest', tc, T),
-             (1.51, .085, .075, 'Chest', sh(tc, .9), T)], 6)
+    f0 = len(mb.f)
+    r = [(zh, .216 * bk * fl, .168 * bk * fl, 'Hips', sh(sc, .70), dict(S, fn=_hem)),
+         (1.06, .143 * bk, .104 * bk, 'Spine', sh(sc, .62), S),
+         (1.06, .143 * bk, .104 * bk, 'Spine', sh(tc, .78), dict(T, split=True))]
+    if sp.get('badge'):
+        r.append((1.22, .152 * bk, .106 * bk, 'Spine', sh(tc, .92), T))
+    mb.loft(r + [(1.42, .182 * bk, .116 * bk, 'Chest', tc, T), (1.51, .085, .075, 'Chest', sh(tc, .9), T)], 6)
+    if sp.get('badge'):
+        badge(mb, f0, 1)
     tc_, tm_ = sp['thigh']; sc_, sm_ = sp['shin']; bc, bm = sp['boot']
     for side, sx in (('L', 1), ('R', -1)):
         x = .10 * sx
@@ -332,9 +525,10 @@ def body1(mb, sp):
     if 'wrap' in sp:
         wc, wt, wm = sp['wrap']
         W = dict(tint=wt, metal=wm)
-        fa = lambda k: (lambda i, p: {'col': sh(SKIN, k), 'tint': 0, 'metal': 0} if i == 0 else None)
-        mb.loft([(1.50, .052, .056, 'Head', sh(wc, .8), W), (1.60, .070, .082, 'Head', wc, dict(W, y=-.008, fn=fa(1.0))),
-                 (1.73, .078, .092, 'Head', wc, dict(W, y=-.004, fn=fa(.7)))], 6, cap_top=True, phase=-PI / 2)
+        f0 = len(mb.f)
+        mb.loft([(1.50, .052, .056, 'Head', sh(wc, .8), W), (1.60, .070, .082, 'Head', wc, dict(W, y=-.008)),
+                 (1.73, .078, .092, 'Head', wc, dict(W, y=-.004))], 6, cap_top=True, phase=-PI / 2)
+        mb.remap(f0, lambda p: p.y < -.03 and p.z > 1.59, face_T(), dict(col=SKIN, tint=0, metal=0))     # the two front quads carry the face
 
 
 # ----------------------------------------------------------------------------- gear
@@ -357,70 +551,63 @@ def spear(mb, lod):
     mb.occ = True
 
 
+PLANKS = Col(sh(WOOD, .62), 'planks')
+
+
+def shield_T(chart, c, half):
+    """device side of a shield, seen from outside: atlas u along +Z, up along -Y (the shield's top in the READY pose)"""
+    return T(chart, 'planar', planar=(Vector(c), Z, -Y, 2 * half / .94, 2 * half / .94))
+
+
 def round_shield(mb, lod):
     c = Vector((.305, 0, 1.05)); B = 'LowerArm.L'; R = .39
     mb.occ = False
     if lod == 0:
-        n = 12
-        RIM = (.50, .50, .52)
-        mb.strip([(c, R, R, sh(WOOD, .6)), (c + X * .022, R, R, RIM, dict(metal=1)), (c + X * .030, R - .038, R - .038, sh(RIM, .9), dict(metal=1))],
+        n = 16
+        RIM = Col((.50, .50, .52), 'plate')
+        mb.strip([(c, R, R, sh(WOOD, .6)), (c + X * .022, R, R, RIM, dict(metal=1)), (c + X * .030, R - .034, R - .034, sh(RIM, .9), dict(metal=1))],
                  n, Y, Z, B, comp=False)
-        ri, ro = .085, R - .038
-        for s in (0, 1):          # face 0: quarterly, face 1: tinted with a cream pale
-            mb.var = SV[s]
-            for i in range(n):
-                a0, a1 = 2 * PI * i / n, 2 * PI * (i + 1) / n
-                tinted = ((i // 3) % 2 == 0) if s == 0 else (i not in (2, 3, 8, 9))
-                col = TINT if tinted else CREAM
-                q = []
-                for a, r, dx in ((a0, ro, .030), (a1, ro, .030), (a1, ri, .060), (a0, ri, .060)):
-                    q.append(mb.add(c + Vector((dx, r * math.cos(a), r * math.sin(a))), sh(col, .92 if r == ro else 1.0), B, 1 if tinted else 0, 0))
-                mb.face(q)
-        mb.var = 0
-        mb.strip([(c + X * .056, .095, .095, DSTEEL), (c + X * .092, .060, .060, STEEL), (c + X * .112, .018, .018, sh(STEEL, 1.1))],
+        mb.tex = shield_T('shR', c, R)
+        mb.strip([(c + X * .030, R - .034, R - .034, sh(TINT, .9)), (c + X * .050, .19, .19, TINT), (c + X * .058, .060, .060, TINT)],
+                 n, Y, Z, B, tint=1, comp=False)
+        mb.tex = None
+        mb.strip([(c + X * .056, .066, .066, DSTEEL), (c + X * .082, .042, .042, STEEL), (c + X * .096, .012, .012, sh(STEEL, 1.1))],
                  6, Y, Z, B, cap1=True, metal=1, comp=False)
-        mb.poly([c + Vector((0, R * math.cos(2 * PI * i / n), R * math.sin(2 * PI * i / n))) for i in range(n)], sh(WOOD, .62), B, flip=True)
+        mb.poly([c + Vector((0, R * math.cos(2 * PI * i / n), R * math.sin(2 * PI * i / n))) for i in range(n)], PLANKS, B, flip=True)
     else:
         n = 8
         R -= .02
         P = lambda i: c + Vector((.02, R * math.cos(2 * PI * i / n), R * math.sin(2 * PI * i / n)))
-        for s in (0, 1):
-            mb.var = SV[s]
-            for i in range(n):
-                tinted = ((i // 2) % 2 == 0) if s == 0 else (i not in (1, 2, 5, 6))
-                col = TINT if tinted else CREAM
-                mb.poly([P(i), P(i + 1), c + X * .075], sh(col, .95), B, 1 if tinted else 0)
-        mb.var = 0
-        mb.poly([P(i) - X * .02 for i in range(n)], sh(WOOD, .62), B, flip=True)
+        mb.tex = shield_T('shR', c, R + .02)
+        for i in range(n):
+            mb.poly([P(i), P(i + 1), c + X * .075], sh(TINT, .95), B, 1)
+        mb.tex = None
+        mb.poly([P(i) - X * .02 for i in range(n)], PLANKS, B, flip=True)
     mb.occ = True
 
 
 def heater_shield(mb, lod):
     cx, cy, cz = .335, 0.0, 1.05; B = 'LowerArm.L'
     mb.occ = False
-    top, mid0 = -.32, -.15
-    mid = mid0 + (.05 if lod == 0 else 0)
+    top, mid = -.32, -.10
     if lod == 0:
         low = [(mid, .27), (.06, .265), (.24, .19), (.43, 0), (.24, -.19), (.06, -.265), (mid, -.27)]
     else:
         low = [(mid, .27), (.14, .25), (.43, 0), (.14, -.25), (mid, -.27)]
     P = lambda a, b, dx=0.0, k=1.0: (cx + dx, cy + a * k + (k - 1) * .04, cz + b * k)
-    # face 0: chief (cream) + field (tint); +X is the face
-    mb.var = SV[0]
-    mb.poly([P(top, -.27, .012), P(mid0, -.27, .012), P(mid0, .27, .012), P(top, .27, .012)], CREAM, B)
-    if lod == 0:
-        mb.poly([P(mid0, -.27, .012), P(mid, -.27, .012), P(mid, .27, .012), P(mid0, .27, .012)], (.09, .09, .10), B)
-    mb.poly([P(a, b, .012) for a, b in reversed(low)], TINT, B, 1)
-    # face 1: per pale, tint / cream
-    mb.var = SV[1]
-    h = len(low) // 2
-    mb.poly([P(top, 0, .012)] + [P(a, b, .012) for a, b in reversed(low[1:h + 1])] + [P(top, .27, .012)], TINT, B, 1)
-    mb.poly([P(top, -.27, .012)] + [P(a, b, .012) for a, b in reversed(low[h:-1])] + [P(top, 0, .012)], CREAM, B)
-    mb.var = 0
     outline = [(top, -.27)] + list(reversed(low)) + [(top, .27)]
+    mb.tex = shield_T('shH', (cx, cy + .055, cz), .375)
+    if lod == 0:        # slightly dished: a centre ridge vertex
+        ctr = mb.add(P(.02, 0, .034), TINT, B, 1, 0)
+        ids = [mb.add(P(a, b, .012), sh(TINT, .93), B, 1, 0) for a, b in outline]
+        for i in range(len(ids)):
+            mb.face((ids[i], ids[(i + 1) % len(ids)], ctr))
+    else:
+        mb.poly([P(a, b, .012) for a, b in outline], TINT, B, 1)
+    mb.tex = None
     if lod == 0:
-        mb.poly([P(a, b, 0, 1.07) for a, b in outline], (.50, .50, .52), B, 0, 1)
-    mb.poly([P(a, b, -.012, 1.07 if lod == 0 else 1.0) for a, b in outline], sh(WOOD, .62), B, flip=True)
+        mb.poly([P(a, b, 0, 1.07) for a, b in outline], Col((.50, .50, .52), 'plate'), B, 0, 1)
+    mb.poly([P(a, b, -.012, 1.07 if lod == 0 else 1.0) for a, b in outline], PLANKS, B, flip=True)
     mb.occ = True
 
 
@@ -492,45 +679,51 @@ def axe(mb, lod):
     up = [(.045, .025)] + [(.30 * math.cos(a), .30 * math.sin(a)) for a in arc] + [(-.045, .025)]
     for sgn in (1, -1):
         o = up if sgn > 0 else [(a, -b) for a, b in reversed(up)]
-        mb.plate([(x, yc + a, z + b) for a, b in o], X, .02, STEEL, sh(STEEL, .9), B, metal=1)
+        mb.plate([(x, yc + a, z + b) for a, b in o], X, .02, GILT, sh(GILT, .9), B, metal=1)        # engraved, gilt blades
     mb.occ = True
 
 
-def cape(mb, col, tint=0, lining=None):
+def cape(mb, lining=None):
+    """the warlord's cloak: outside painted in the atlas (crimson damask, gold border), fur-lined"""
     rows = [(1.50, .185, .128, 'Chest'), (1.20, .27, .175, 'Spine'), (0.74, .32, .215, 'Hips'), (0.26, .37, .245, 'Hips')]
-    us = (-1, -.5, 0, .5, 1)
+    us = (-1, -.6, -.25, 0, .25, .6, 1)
+    ch = SA.CH['cape']
     for sgn in (1, -1):
         grid = []
         for i, (z, w, y, bone) in enumerate(rows):
-            k = 1.0 - .10 * i
+            k = 1.0 - .08 * i
             row = []
             for j, u in enumerate(us):
-                yy = y - .075 * u * u + (.02 if j % 2 else 0) * (i > 0) - (0 if sgn > 0 else .012)
-                c = sh(col, k * (1.0 if j % 2 == 0 else .82)) if sgn > 0 else sh(lining or col, .55 * k)
-                row.append(mb.add((w * u, yy, z), c, bone, tint if sgn > 0 else 0, 0))
+                yy = y - .075 * u * u + (.028 if j % 2 else 0) * (i > 0) - (0 if sgn > 0 else .012)
+                c = sh(WHITE, k * (1.0 if j % 2 == 0 else .86)) if sgn > 0 else sh(lining, .55 * k)
+                row.append(mb.add((w * u, yy, z), c, bone, 0, 0))
             grid.append(row)
         for i in range(len(rows) - 1):
             for j in range(len(us) - 1):
                 lo, up = grid[i + 1], grid[i]
                 q = (lo[j], up[j], up[j + 1], lo[j + 1])
-                mb.face(q if sgn > 0 else tuple(reversed(q)))
+                if sgn > 0:
+                    b0, b1 = (rows[i + 1][0] - .26) / 1.24, (rows[i][0] - .26) / 1.24
+                    a0, a1 = (us[j] + 1) / 2, (us[j + 1] + 1) / 2
+                    mb.face(q, uv=[ch.uv(1 - a0, b0), ch.uv(1 - a0, b1), ch.uv(1 - a1, b1), ch.uv(1 - a1, b0)])
+                else:
+                    mb.face(tuple(reversed(q)))
 
 
 # ----------------------------------------------------------------------------- helmets (Head bone)
 def kettle_hat(mb):
     H = dict(metal=1)
     mb.loft([(1.712, .168, .180, 'Head', sh(STEEL, .9), H), (1.745, .100, .110, 'Head', sh(STEEL, .8), H),
-             (1.745, .100, .110, 'Head', sh(STEEL, .9), dict(H, split=True)), (1.805, .090, .100, 'Head', STEEL, H),
-             (1.858, .050, .056, 'Head', sh(STEEL, 1.08), H)], 8, cap_top=True, phase=-PI / 2)
+             (1.745, .100, .110, 'Head', sh(HELM, .9), dict(H, split=True)), (1.805, .090, .100, 'Head', HELM, H),
+             (1.858, .050, .056, 'Head', sh(HELM, 1.08), H)], 8, cap_top=True, phase=-PI / 2)
     mb.loft([(1.706, .168, .180, 'Head', sh(DSTEEL, .95), H), (1.735, .092, .102, 'Head', sh(DSTEEL, .7), H)], 8, phase=-PI / 2, flip=True)
 
 
 def nasal_helm(mb):
     H = dict(metal=1)
-    mb.loft([(1.700, .093, .106, 'Head', DSTEEL, H), (1.722, .093, .106, 'Head', DSTEEL, H),
-             (1.722, .090, .103, 'Head', STEEL, dict(H, split=True)), (1.775, .082, .094, 'Head', STEEL, H),
-             (1.835, .054, .062, 'Head', STEEL, H), (1.882, .012, .014, 'Head', sh(STEEL, 1.1), H)], 8, cap_top=True, phase=-PI / 2)
-    mb.box((0, -.113, 1.655), (.024, .012, .12), DSTEEL, 'Head', metal=1)
+    mb.loft([(1.700, .093, .106, 'Head', sh(HELM, .8), H), (1.775, .082, .094, 'Head', HELM, H),
+             (1.835, .054, .062, 'Head', HELM, H), (1.882, .012, .014, 'Head', sh(HELM, 1.1), H)], 8, cap_top=True, phase=-PI / 2)
+    mb.box((0, -.127, 1.672), (.024, .012, .105), DSTEEL, 'Head', metal=1, rot=Matrix.Rotation(math.radians(-15), 3, 'X'))    # nasal bar
 
 
 def great_helm(mb):
@@ -543,10 +736,10 @@ def great_helm(mb):
             r['p'] = p + Vector((0, -.014, 0))
         return r
     P = dict(metal=1, fn=prow); H = dict(metal=1)
-    mb.loft([(1.485, .098, .112, 'Head', sh(STEEL, .72), P), (1.60, .108, .124, 'Head', sh(STEEL, .95), P),
-             (1.684, .109, .125, 'Head', STEEL, P),
+    mb.loft([(1.485, .098, .112, 'Head', sh(HELM, .72), P), (1.60, .108, .124, 'Head', sh(HELM, .95), P),
+             (1.684, .109, .125, 'Head', HELM, P),
              (1.684, .109, .125, 'Head', STEEL, dict(metal=1, fn=slit, split=True)), (1.708, .109, .125, 'Head', STEEL, dict(metal=1, fn=slit)),
-             (1.708, .109, .125, 'Head', STEEL, dict(P, split=True)), (1.80, .102, .117, 'Head', sh(STEEL, 1.05), P),
+             (1.708, .109, .125, 'Head', HELM, dict(P, split=True)), (1.80, .102, .117, 'Head', sh(HELM, 1.05), P),
              (1.80, .102, .117, 'Head', sh(STEEL, .95), dict(H, split=True)), (1.83, .050, .058, 'Head', STEEL, H)],
             8, cap_top=True, phase=-PI / 2)
     mb.box((0, -.148, 1.59), (.02, .014, .19), GOLD, 'Head', metal=1)
@@ -567,8 +760,11 @@ def arming_cap(mb):
              (1.822, .046, .054, 'Head', sh(GAMB, 1.1), {})], 8, cap_top=True, phase=-PI / 2)
 
 
-def chin_beard(mb, col):
-    mb.cyl((0, -.064, 1.618), (0, -.092, 1.528), (.068, .042), 0, 5, col, 'Head', col1=sh(col, .85))
+def chin_beard(mb, chart='face'):
+    """a beard under the mouth, in the hair colour of the soldier's face cell"""
+    old = mb.tex; mb.tex = T(chart, 'pt', pt=SA.HAIR_PT)
+    mb.cyl((0, -.070, 1.600), (0, -.100, 1.495), (.060, .038), 0, 5, HAIR, 'Head', col1=sh(HAIR, .8))
+    mb.tex = old
 
 
 def hood_top(mb):
@@ -581,7 +777,7 @@ def hood_top(mb):
 
 def brim_hat(mb):
     """felt bycocket: brim drawn to a point in front, turned up behind, feather on the side"""
-    FELT = (.52, .38, .23)
+    FELT = C_(.52, .38, .23, 'felt')
 
     def brim(i, p):
         if i == 0:
@@ -601,8 +797,8 @@ def visor_bascinet(mb):
     H = dict(metal=1)
     mb.loft([(1.462, .150, .126, 'Chest', sh(MAIL, .72), dict(sq=.88)), (1.535, .104, .110, 'Head', sh(MAIL, .9), {}),
              (1.622, .099, .113, 'Head', MAIL, {}),
-             (1.606, .103, .117, 'Head', sh(STEEL, .78), dict(H, split=True)), (1.722, .104, .118, 'Head', STEEL, dict(H, y=.004)),
-             (1.826, .072, .084, 'Head', sh(STEEL, 1.04), dict(H, y=.014)), (1.908, .012, .014, 'Head', sh(STEEL, 1.1), dict(H, y=.026))],
+             (1.606, .103, .117, 'Head', sh(HELM, .78), dict(H, split=True)), (1.722, .104, .118, 'Head', HELM, dict(H, y=.004)),
+             (1.826, .072, .084, 'Head', sh(HELM, 1.04), dict(H, y=.014)), (1.908, .012, .014, 'Head', sh(HELM, 1.1), dict(H, y=.026))],
             8, cap_top=True, phase=-PI / 2)
     mb.cyl((0, -.078, 1.662), (0, -.232, 1.632), (.078, .070), 0, 6, sh(STEEL, .92), 'Head', metal=1, up=X, col1=sh(STEEL, 1.1))
     mb.box((0, -.112, 1.722), (.135, .02, .016), BLACK, 'Head')
@@ -616,14 +812,14 @@ def fan_crest(mb):
 
 
 # ----------------------------------------------------------------------------- types
-INF = dict(torso=(TINT, 1, 0), skirt=(0.66, TINT, 1, 0, 1.0), thigh=(HOSE, 0), shin=(HOSE, 0), boot=(BOOT, 0), boot_z=.36,
-           arm=(MAIL, 0), forearm=(GAMB, 0), hand=(LEATH, 0), wrap=(MAIL, 0, 0))
+INF = dict(badge=True, torso=(TABARD, 1, 0), skirt=(0.66, TABARD, 1, 0, 1.0), thigh=(HOSE, 0), shin=(HOSE, 0), boot=(BOOT, 0), boot_z=.36,
+           arm=(MAIL, 0), forearm=(GAMB, 0), hand=(SKIN, 0), wrap=(MAIL, 0, 0))
 ARC = dict(torso=(GAMB, 0, 0), skirt=(0.72, sh(GAMB, .88), 0, 0, .95), thigh=(GHOSE, 0), shin=(GHOSE, 0), boot=(LEATH, 0), boot_z=.30,
-           arm=(GAMB, 0), forearm=(LEATH, 0), hand=(SKIN, 0), wrap=(TINT, 1, 0), quilt=True, sleeve=(TINT, 1))
-KNI = dict(torso=(TINT, 1, 0), skirt=(0.55, TINT, 1, 0, 1.0), thigh=(STEEL, 1), shin=(STEEL, 1), boot=(DSTEEL, 1), boot_z=.30,
-           arm=(STEEL, 1), forearm=(STEEL, 1), hand=(DSTEEL, 1), cuff=True, bulk=1.05, belt=(DLEATH, 0))
+           arm=(GAMB, 0), forearm=(LEATH, 0), hand=(SKIN, 0), wrap=(TINT, 1, 0), sleeve=(TINT, 1))
+KNI = dict(badge=True, torso=(SURCOAT, 1, 0), skirt=(0.55, SURCOAT, 1, 0, 1.0), thigh=(ARMOR, 1), shin=(ARMOR, 1), boot=(DARMOR, 1), boot_z=.30,
+           arm=(ARMOR, 1), forearm=(ARMOR, 1), hand=(DARMOR, 1), cuff=True, bulk=1.05, belt=(DLEATH, 0))
 WAR = dict(torso=(PLATE, 0, 1), skirt=(0.60, PLATE, 0, 1, 1.0), thigh=(PLATE, 1), shin=(PLATE, 1), boot=(IRON, 1), boot_z=.30,
-           arm=(PLATE, 1), forearm=(PLATE, 1), hand=(IRON, 1), cuff=True, bulk=1.13, belt=(GOLD, 1), wrap=(MAIL, 0, 0), beard=FUR)
+           arm=(PLATE, 1), forearm=(PLATE, 1), hand=(IRON, 1), cuff=True, bulk=1.13, belt=(GOLD, 1), wrap=(MAIL, 0, 0), face='wface')
 
 
 def mail_hem(mb, sp, n=10):
@@ -657,7 +853,7 @@ def build_infantry(lod):
         mail_hem(mb, INF)
         mb.var = HV(0); kettle_hat(mb)
         mb.var = HV(1); nasal_helm(mb)
-        mb.var = HV(2); arming_cap(mb); chin_beard(mb, (.46, .33, .21))
+        mb.var = HV(2); arming_cap(mb); chin_beard(mb)
         mb.var = 0
         # mail cowl over the shoulders
         mb.loft([(1.435, .200, .128, 'Chest', sh(MAIL, .85), dict(sq=.85)), (1.50, .120, .100, 'Chest', MAIL), (1.565, .068, .074, 'Chest', MAIL)], 8, phase=-PI / 2)
@@ -683,15 +879,15 @@ def build_archer(lod):
         mb.var = HV(1); hood_top(mb)
         mb.var = HV(2); brim_hat(mb)
         mb.var = 0
-        mb.loft([(1.375, .232, .150, 'Chest', sh(TINT, .78), M), (1.465, .200, .128, 'Chest', sh(TINT, .92), M),
-                 (1.565, .072, .078, 'Chest', TINT, M)], 10)
+        mb.loft([(1.375, .232, .150, 'Chest', sh(MANTLE, .78), M), (1.465, .200, .128, 'Chest', sh(MANTLE, .92), M),
+                 (1.565, .072, .078, 'Chest', MANTLE, M)], 10)
         mb.box((-.125, -.118, .985), (.085, .05, .10), LEATH, 'Hips')
     else:
         body1(mb, ARC)
-        mb.loft([(1.375, .232, .150, 'Chest', sh(TINT, .78), M), (1.555, .075, .08, 'Chest', TINT, M)], 6)
+        mb.loft([(1.375, .232, .150, 'Chest', sh(MANTLE, .78), M), (1.555, .075, .08, 'Chest', MANTLE, M)], 6)
         mb.var = HV(0); mb.cyl((0, 0, 1.705), (0, 0, 1.885), (.098, .110), 0, 6, sh(STEEL, .85), 'Head', metal=1, up=X, col1=STEEL)
         mb.var = HV(1); mb.cyl((0, .004, 1.715), (0, .014, 1.850), (.088, .102), 0, 6, sh(TINT, .9), 'Head', tint=1, up=X, col1=TINT)
-        mb.var = HV(2); mb.cyl((0, -.02, 1.715), (0, 0, 1.860), (.140, .160), 0, 6, (.42, .30, .18), 'Head', up=X, col1=(.55, .40, .24))
+        mb.var = HV(2); mb.cyl((0, -.02, 1.715), (0, 0, 1.860), (.140, .160), 0, 6, C_(.42, .30, .18, 'felt'), 'Head', up=X, col1=C_(.55, .40, .24, 'felt'))
         mb.var = 0
     bow(mb, lod); quiver(mb, lod)
     return mb
@@ -709,7 +905,7 @@ def build_knight(lod):
         mb.var = HV(1); visor_bascinet(mb)
         mb.var = HV(2); fan_crest(mb)
         mb.var = 0
-        plate_bits(mb, KNI, STEEL)
+        plate_bits(mb, KNI, ARMOR)
         mb.cyl((.185, -.03, 1.03), (.27, .27, .44), .028, .018, 4, DLEATH, 'Hips', cap1=True, col1=GOLD)
     else:
         body1(mb, KNI)
@@ -745,12 +941,14 @@ def build_warlord(lod=0):
     # plume
     mb.tube([(0, .02, 1.90), (0, .03, 2.03), (0, .11, 2.12), (0, .24, 2.10), (0, .33, 1.98)], [.02, .052, .064, .052, .012], 5, CRIMSON, 'Head',
             cols=[sh(CRIMSON, .7), CRIMSON, sh(CRIMSON, 1.2), CRIMSON, sh(CRIMSON, .8)], cap1=True)
-    mb.cyl((0, -.088, 1.605), (0, -.112, 1.455), (.066, .042), 0, 5, FUR, 'Head', col1=sh(FUR, .8))  # beard
+    mb.tex = T('wface', 'pt', pt=SA.HAIR_PT)
+    mb.cyl((0, -.074, 1.600), (0, -.118, 1.440), (.066, .044), 0, 6, HAIR, 'Head', col1=sh(HAIR, .75))  # beard
+    mb.tex = None
     # fur mantle + cape
     tuft = lambda i, p: {'col': sh(FUR, .75 if i % 2 else 1.25)}
     mb.loft([(1.34, .315, .215, 'Chest', sh(FUR, .8), dict(fn=tuft, sq=.9)), (1.455, .255, .178, 'Chest', FUR, dict(fn=tuft, sq=.9)),
              (1.56, .105, .105, 'Chest', sh(FUR, 1.2))], 10)
-    cape(mb, CRIMSON, 0, lining=FUR)
+    cape(mb, lining=FUR)
     xa = _arm_x(sp)
     for sx, side in ((1, 'L'), (-1, 'R')):
         mb.cyl(((xa + .02) * sx, 0, 1.525), ((xa + .13) * sx, 0, 1.655), .028, 0, 4, GOLD, 'UpperArm.' + side, metal=1)
@@ -878,6 +1076,17 @@ def c_idle(t):
              loc=(.012 * S(p), 0, -.004 * (1 - C(2 * p))), uaR=(2 * S(p), 0, 0), laR=(-2 * S(p), 0, 0), uaL=(2 * C(p), 0, 0))
 
 
+# second idle stance: at ease - weight on the right leg, left knee slack, shield arm lowered, spear canted, head turned
+EASE = dict(uaR=(13, 9, 0), laR=(71, 0, 0), uaL=(7, 9, 38), laL=(70, 0, 0), ulL=(11, 6, 0), llL=(-19, 0, 0), fL=(8, 0, 0), ulR=(-3, 3, 0),
+            hips=(0, 3.5, 0), spine=(2, -4, 0), chest=(2, 0, -5), head=(5, 0, -13), loc=(-.028, 0, -.011))
+
+
+def c_idle_b(t):
+    p = TAU * t / 2.0
+    return D(EASE, chest=(1.5 * S(p + 1), 0, 0), spine=(0, 1.2 * S(p), 0), head=(2 * S(p + .7), 0, 7 * S(p)),
+             loc=(.008 * S(p), 0, -.004 * (1 - C(2 * p))), uaR=(1.5 * S(p), 0, 0), laR=(-1.5 * S(p), 0, 0), uaL=(2 * C(p), 0, 0))
+
+
 SHIELDUP = P(READY, **crouch(52, 95, 8), spine=(22, 0, 0), chest=(6, 0, 0), head=(12, 0, 0),
              uaL=(152, 12, 0), laL=(0, -92, 0), uaR=(25, 12, 0), laR=(75, 0, 0))
 
@@ -980,7 +1189,7 @@ def c_crank(t):
 
 CLIPS = [('Idle', 2.0, c_idle), ('ShieldUp', 1.0, c_shieldup), ('Walk', 1.0, c_walk), ('Run', 0.625, c_run), ('Panic', 1.5, c_panic),
          ('Volley', 3.0, c_volley), ('Attack', 1.2, c_attack), ('Cheer', 1.5, c_cheer), ('Thrown', 1.0, c_thrown), ('Die', 1.2, c_die),
-         ('Crank', 2.0, c_crank)]
+         ('Crank', 2.0, c_crank), ('IdleB', 2.0, c_idle_b)]
 CLIPD = {n: (d, f) for n, d, f in CLIPS}
 
 
@@ -1004,7 +1213,15 @@ def make_material(preview):
     nt.links.new(sep.outputs['X'], mx.inputs['Factor']); nt.links.new(oi.outputs['Color'], mx.inputs['B'])
     mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs['Factor'].default_value = 1
     nt.links.new(ca.outputs['Color'], mul.inputs['A']); nt.links.new(mx.outputs['Result'], mul.inputs['B'])
-    nt.links.new(mul.outputs['Result'], bsdf.inputs['Base Color'])
+    out = mul.outputs['Result']
+    if os.path.exists(ATLAS):       # atlas x 1.25, as in the game (face / device cells are not shifted here: everyone shows cell 0)
+        au = nt.nodes.new('ShaderNodeUVMap'); au.uv_map = 'Atlas'
+        tx = nt.nodes.new('ShaderNodeTexImage'); tx.image = bpy.data.images.load(ATLAS); nt.links.new(au.outputs['UV'], tx.inputs['Vector'])
+        m2 = nt.nodes.new('ShaderNodeMix'); m2.data_type = 'RGBA'; m2.blend_type = 'MULTIPLY'; m2.inputs['Factor'].default_value = 1
+        g = nt.nodes.new('ShaderNodeVectorMath'); g.operation = 'SCALE'; g.inputs['Scale'].default_value = SA.GAIN
+        nt.links.new(tx.outputs['Color'], g.inputs[0]); nt.links.new(out, m2.inputs['A']); nt.links.new(g.outputs['Vector'], m2.inputs['B'])
+        out = m2.outputs['Result']
+    nt.links.new(out, bsdf.inputs['Base Color'])
     inv = nt.nodes.new('ShaderNodeMath'); inv.operation = 'SUBTRACT'; inv.inputs[0].default_value = 1
     nt.links.new(sep.outputs['Y'], inv.inputs[1]); nt.links.new(inv.outputs[0], bsdf.inputs['Metallic'])
     rm = nt.nodes.new('ShaderNodeMapRange'); rm.inputs['To Min'].default_value = .8; rm.inputs['To Max'].default_value = .38
@@ -1058,7 +1275,7 @@ def bake_ao(mb, nrm, M):
         sky = 0.78 + 0.22 * (n.z * 0.5 + 0.5)
         gnd = 0.84 + 0.16 * min(1.0, max(0.0, p.z) / 0.55)
         c = mb.c[i]
-        lo = 0.84 if (c[2] > 0 and abs(c[0] / c[2] - SKIN[0] / SKIN[2]) < .02 and abs(c[1] / c[2] - SKIN[1] / SKIN[2]) < .02) else 0.30
+        lo = 0.84 if getattr(c, 'mat', None) in ('skin', 'hair') else 0.30
         ao.append(max(lo, (1.0 - AO_K * min(1.0, occ * 1.5)) * sky * gnd))
     return ao
 
@@ -1074,12 +1291,22 @@ def make_object(name, mb, rig, mat, sel=None):
     ao = bake_ao(mb, nrm, AO_M)
     ca = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
     uvl = me.uv_layers.new(name='UVMap')
-    for l in me.loops:
-        i = l.vertex_index
-        c = lin(sh(mb.c[i], ao[i]))
-        ca.data[l.index].color = (c[0], c[1], c[2], 1.0)
-        # glTF exporter flips V -> exported V = variant mask + 0.5 * metal (preview: plain metal mask)
-        uvl.data[l.index].uv = (mb.t[i], 1.0 - (mb.m[i] if sel is not None else mb.k[i] + 0.5 * mb.m[i]))
+    uv2 = me.uv_layers.new(name='Atlas')
+    kept = [fi for fi, w in enumerate(keep) if w]
+    for poly in me.polygons:
+        fi = kept[poly.index]
+        ov = mb.fov[fi] or {}
+        for q, li in enumerate(poly.loop_indices):
+            i = me.loops[li].vertex_index
+            assert i == mb.f[fi][q]
+            c = lin(sh(ov.get('col', mb.c[i]), ao[i]))
+            ca.data[li].color = (c[0], c[1], c[2], 1.0)
+            t = ov.get('tint', mb.t[i]); m = ov.get('metal', mb.m[i])
+            # glTF exporter flips V -> exported V = variant mask + 0.5 * metal (preview: plain metal mask)
+            uvl.data[li].uv = (t, 1.0 - (m if sel is not None else mb.k[i] + 0.5 * m))
+            u, v = mb.fuv[fi][q]
+            uv2.data[li].uv = (u, 1.0 - v)
+    me.uv_layers.active = uvl; uvl.active_render = True
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     groups = {}
@@ -1273,7 +1500,24 @@ def previews():
 
 
 # ----------------------------------------------------------------------------- main
+def save_atlas(path, rgba):
+    h, w = rgba.shape[:2]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    im = bpy.data.images.new('atlas', w, h, alpha=True)
+    im.alpha_mode = 'STRAIGHT'
+    im.pixels.foreach_set(rgba[::-1].astype('float32').ravel())
+    im.filepath_raw = path; im.file_format = 'PNG'
+    im.save()
+    print('ATLAS', path, w, h)
+
+
+# atlas cell of each formation colour (crowd.js HERALD order) = floor(fract(dot(linear tint, (19.5, 9.5, 11.5))) * 8) in the shader
+SA.CELL_OF[:] = [4, 1, 7, 3, 6, 5, 0, 2]
 bpy.ops.wm.read_factory_settings(use_empty=True)
+if 'atlas' in ARGS or 'atlasonly' in ARGS or not os.path.exists(ATLAS):
+    SA.paint(ATLAS, save_atlas)
+    if 'atlasonly' in ARGS:
+        raise SystemExit
 bpy.context.scene.render.fps = FPS
 rig = make_rig()
 AO_M = pose_mats(rig, READY)

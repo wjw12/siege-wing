@@ -18,17 +18,24 @@ const MAXN = 2200, LOD_D = 95;
 const _v = new V3(), _v2 = new V3(), _m = new THREE.Matrix4(), _c = new THREE.Color();
 const HERALD = [[0x9a1b1b, 0xe8d9a0], [0x1c3f95, 0xe6e6e6], [0xc49a1a, 0x1a1a1a], [0x2a6e3a, 0xe8d9a0], [0x6a2470, 0xd9b84a], [0xd8d2c2, 0x8a1515], [0x15616d, 0xf0e0b0], [0x7a3b12, 0xe0e0e0]];
 
+// Per-soldier variety comes from hashes of iAnim.w (his scale, constant for life): helmet / shield-layout selection, face cell, girth,
+// and small bind-space turns of the leaf bones (head, weapon hand, shield arm) so no two men stand quite alike.
 const GLSL_ANIM = /* glsl */`
 attribute float aJ; attribute vec4 iPos; attribute vec4 iAnim; attribute vec4 iTint;
-uniform sampler2D uAnim; uniform float uAnimH;
+uniform sampler2D uAnim; uniform float uAnimH; uniform vec4 uSwB; // joint indices: head, weapon hand, shield forearm, shield hand
+void swRot(inout vec2 v, float a){ float c = cos(a), s = sin(a); v = vec2(v.x * c - v.y * s, v.x * s + v.y * c); }
 mat4 swBone(float row){ float v = (row + 0.5) / uAnimH; float u = (aJ * 3.0 + 0.5) / ${NB * 3}.0;
   vec4 a = texture2D(uAnim, vec2(u, v)), b = texture2D(uAnim, vec2(u + 1.0 / ${NB * 3}.0, v)), c = texture2D(uAnim, vec2(u + 2.0 / ${NB * 3}.0, v));
   return mat4(a.x, b.x, c.x, 0.0, a.y, b.y, c.y, 0.0, a.z, b.z, c.z, 0.0, a.w, b.w, c.w, 1.0); }
 void swXform(inout vec3 p, inout vec3 n){
   // variants: floor(uv.y) is a bit mask of the selections (0..5, a stable per-soldier hash of his scale) that draw this vertex; 0 = always. Others collapse to a point.
   float swK = floor(uv.y + 0.01); if (swK > 0.5 && mod(floor(swK / exp2(floor(fract(iAnim.w * 937.13) * 6.0)) + 0.005), 2.0) < 0.5) p = vec3(0.0, 1.6, 0.0);
+  float swH2 = fract(iAnim.w * 5273.7), swH3 = fract(iAnim.w * 1913.3);
+  if (abs(aJ - uSwB.x) < 0.5) { p.y -= 1.52; float a = (swH2 - 0.5) * 0.62, b = (swH3 - 0.5) * 0.2; swRot(p.xz, a); swRot(n.xz, a); swRot(p.xy, b); swRot(n.xy, b); p.y += 1.52; } // head turned / cocked
+  else if (abs(aJ - uSwB.y) < 0.5) { p -= vec3(-0.236, 0.868, 0.0); float a = (swH3 - 0.5) * 0.2, b = (fract(swH2 * 7.3) - 0.5) * 0.16; swRot(p.yz, a); swRot(n.yz, a); swRot(p.xz, b); swRot(n.xz, b); p += vec3(-0.236, 0.868, 0.0); } // weapon canted
+  else if (abs(aJ - uSwB.z) < 0.5 || abs(aJ - uSwB.w) < 0.5) { p -= vec3(0.228, 1.18, 0.0); float a = (fract(swH3 * 5.1) - 0.5) * 0.3; swRot(p.xz, a); swRot(n.xz, a); p += vec3(0.228, 1.18, 0.0); } // shield carried a little in or out
   mat4 m = swBone(iAnim.x); if (iAnim.z > 0.001) { mat4 m2 = swBone(iAnim.y); m = m * (1.0 - iAnim.z) + m2 * iAnim.z; }
-  p = (m * vec4(p, 1.0)).xyz * iAnim.w; n = normalize(mat3(m) * n);
+  p = (m * vec4(p, 1.0)).xyz * iAnim.w; n = normalize(mat3(m) * n); p.x *= 0.95 + 0.12 * fract(swH2 * 5.3); // girth
   float ta = iTint.w; if (abs(ta) > 0.001) { float c = cos(ta), s = sin(ta); p.y -= 0.9; p = vec3(p.x, p.y * c - p.z * s, p.y * s + p.z * c); p.y += 0.9; n = vec3(n.x, n.y * c - n.z * s, n.y * s + n.z * c); }
   float cy = cos(iPos.w), sy = sin(iPos.w); p = vec3(p.x * cy + p.z * sy, p.y, -p.x * sy + p.z * cy) + iPos.xyz; n = vec3(n.x * cy + n.z * sy, n.y, -n.x * sy + n.z * cy);
 }`;
@@ -50,7 +57,9 @@ export const crowd = {
     const gl = assets.soldiers, root = gl.scene; root.updateMatrixWorld(true);
     const meshes = this.src = {}; root.traverse(o => { if (o.isSkinnedMesh) meshes[o.name] = o; });
     const sk = meshes.Infantry.skeleton; const mixer = new THREE.AnimationMixer(root);
-    let rows = 0; const clip = this.clip = CLIPS.map(name => { const c = gl.animations.find(a => a.name === name); const frames = Math.max(2, Math.round(c.duration * FPS) + 1); const o = { name, clip: c, dur: c.duration, frames, start: rows }; rows += frames; return o; });
+    const jn = re => sk.bones.findIndex(b => re.test(b.name)); this.joints = new THREE.Vector4(jn(/^Head/), jn(/^Hand.?R/), jn(/^LowerArm.?L/), jn(/^Hand.?L/));
+    const names = gl.animations.some(a => a.name === 'IdleB') ? CLIPS.concat('IdleB') : CLIPS; // IdleB: optional second idle stance, same length as Idle
+    let rows = 0; const clip = this.clip = names.map(name => { const c = gl.animations.find(a => a.name === name); const frames = Math.max(2, Math.round(c.duration * FPS) + 1); const o = { name, clip: c, dur: c.duration, frames, start: rows }; rows += frames; return o; });
     const data = new Float32Array(NB * 3 * rows * 4);
     for (const c of clip) {
       const act = mixer.clipAction(c.clip); act.play();
@@ -68,32 +77,51 @@ export const crowd = {
     const tex = this.animTex = new THREE.DataTexture(data, NB * 3, rows, THREE.RGBAFormat, THREE.FloatType);
     const canLin = !!G.renderer.extensions.get('OES_texture_float_linear');
     tex.minFilter = tex.magFilter = canLin ? THREE.LinearFilter : THREE.NearestFilter; tex.needsUpdate = true; this.animRows = rows;
+    this.idleB = clip.length > CLIPS.length ? clip[CLIPS.length].start - clip[A.Idle].start : 0; // row offset from Idle to IdleB
   },
   _geo(name) {
     const sm = this.src[name]; const g0 = sm.geometry; const n = g0.attributes.position.count;
-    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), uv = new Float32Array(n * 2), aj = new Float32Array(n);
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), uv = new Float32Array(n * 2), uv2 = new Float32Array(n * 2), aj = new Float32Array(n);
+    const a2 = g0.attributes.uv1; // atlas coordinates (TEXCOORD_1); without them everything samples the atlas' neutral tile
     const bm = sm.bindMatrix, nm = new THREE.Matrix3().getNormalMatrix(bm);
     for (let i = 0; i < n; i++) {
       _v.fromBufferAttribute(g0.attributes.position, i).applyMatrix4(bm); pos.set([_v.x, _v.y, _v.z], i * 3);
       _v.fromBufferAttribute(g0.attributes.normal, i).applyMatrix3(nm).normalize(); nor.set([_v.x, _v.y, _v.z], i * 3);
       const c = g0.attributes.color; col.set([c.getX(i), c.getY(i), c.getZ(i)], i * 3);
       uv.set([g0.attributes.uv.getX(i), g0.attributes.uv.getY(i)], i * 2); aj[i] = g0.attributes.skinIndex.getX(i);
+      uv2.set(a2 ? [a2.getX(i), a2.getY(i)] : [0.0625, 0.578], i * 2);
     }
     const g = new THREE.InstancedBufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setAttribute('aJ', new THREE.BufferAttribute(aj, 1));
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setAttribute('aUv2', new THREE.BufferAttribute(uv2, 2)); g.setAttribute('aJ', new THREE.BufferAttribute(aj, 1));
     g.setIndex(g0.index); return g;
   },
   _meshes(scene) {
-    const u = { uAnim: { value: this.animTex }, uAnimH: { value: this.animRows } };
+    let atlas = assets.soldierTex;
+    if (!atlas) { atlas = new THREE.DataTexture(new Uint8Array([231, 231, 231, 255]), 1, 1, THREE.RGBAFormat); atlas.colorSpace = THREE.SRGBColorSpace; atlas.needsUpdate = true; }
+    const u = { uAnim: { value: this.animTex }, uAnimH: { value: this.animRows }, uSwB: { value: this.joints }, uSwTex: { value: atlas } };
     const mat = this.mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, vertexColors: true });
+    // Atlas lookup (aUv2). Face band (v < 3/32): u moves to one of 16 face cells per soldier. Shield band (u < 3/32, v < 33/64): u moves to the
+    // formation's device (hash of its tint, matched by the atlas painter), and layout-B soldiers (selection 3..5) read the row below.
     patchMaterial(mat, 'crowd', sh => {
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + GLSL_ANIM + '\nvarying vec3 vSwT; varying vec2 vSwM;')
-        .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = vec3(normal); vec3 swP = vec3(position); swXform(swP, objectNormal); vSwT = iTint.rgb; vSwM = vec2(uv.x, fract(uv.y) * 2.0);')
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + GLSL_ANIM + '\nattribute vec2 aUv2; varying vec3 vSwT; varying vec2 vSwM; varying vec2 vSwUv; varying vec3 vSwV;')
+        .replace('#include <beginnormal_vertex>', `vec3 objectNormal = vec3(normal); vec3 swP = vec3(position); swXform(swP, objectNormal); vSwT = iTint.rgb; vSwM = vec2(uv.x, fract(uv.y) * 2.0);
+          vec2 swU = aUv2; float swS = fract(iAnim.w * 937.13) * 6.0;
+          if (swU.y < 0.09375) { if (swU.x < 0.0625) swU.x += floor(fract(iAnim.w * 5273.7) * 16.0) * 0.0625; }
+          else if (swU.y < 0.515625 && swU.x < 0.09375) { float row = floor((swU.y - 0.09375) / 0.09375); swU.x += floor(fract(dot(iTint.rgb, vec3(19.5, 9.5, 11.5))) * 8.0) * 0.09375; if (swS >= 3.0 && (row < 0.5 || abs(row - 2.0) < 0.5)) swU.y += 0.09375; }
+          vSwUv = swU; float swD = fract(iAnim.w * 1913.3); vSwV = vec3(swD * smoothstep(1.05, 0.15, position.y), 0.84 + 0.3 * fract(swD * 9.7), 0.0); // mud toward the feet, how faded his cloth is
+`)
         .replace('#include <begin_vertex>', 'vec3 transformed = swP;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSwT; varying vec2 vSwM;')
-        .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(vec3(0.75), vSwT * 1.5, 0.8), step(0.5, vSwM.x)); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.4 + vSwT * 1.35), 0.5 * smoothstep(80.0, 210.0, length(vViewPosition))); // far blocks keep their heraldic colour')
-        .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = step(0.5, vSwM.y) * 0.9;')
-        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.86, 0.38, step(0.5, vSwM.y));');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSwT; varying vec2 vSwM; varying vec2 vSwUv; varying vec3 vSwV; uniform sampler2D uSwTex;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          vec4 swTx = texture2D(uSwTex, vSwUv); float swCl = step(0.5, vSwM.x), swMt = step(0.5, vSwM.y);
+          diffuseColor.rgb *= swTx.rgb * 1.25;
+          vec3 swCo = dot(vSwT, vec3(0.3, 0.6, 0.1)) > 0.22 ? mix(vec3(0.05, 0.045, 0.04), vec3(0.3, 0.02, 0.02), step(0.3, vSwT.b)) : vec3(1.0, 0.9, 0.62); // counter colour of the heraldry: cream on dark tints, black / dark red on light ones
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(swCo, 0.15 + vSwT * 1.2, swTx.a) * vSwV.y, swCl);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.62, 0.5, 0.36), vSwV.x * 0.55 * (1.0 - swMt));
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.4 + vSwT * 1.35), 0.5 * smoothstep(80.0, 210.0, length(vViewPosition))); // far blocks keep their heraldic colour
+`)
+        .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = swMt * 0.9;')
+        .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.86, 0.34 + 0.4 * (1.0 - min(1.0, dot(swTx.rgb, vec3(0.42)))), swMt);'); // dark texels on metal (gaps between mail rings, engraving) are dull
     }, u);
     const dmat = this.dmat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
     patchMaterial(dmat, 'crowdDepth', sh => {
@@ -114,7 +142,7 @@ export const crowd = {
   _alloc() {
     const F = () => new Float32Array(MAXN), U8 = () => new Uint8Array(MAXN), I16 = () => new Int16Array(MAXN);
     Object.assign(this, { x: F(), y: F(), z: F(), vx: F(), vy: F(), vz: F(), yaw: F(), hx: F(), hz: F(), hy: F(), t: F(), at: F(), bl: F(), prow: F(), tr: F(), tg: F(), tb: F(), sc: F(), tum: F(), tumR: F(), dur: F(), fx_: F(), fz_: F(), ph: F(),
-      type: U8(), st: U8(), an: U8(), fixed: U8(), form: I16(), crew: I16() });
+      type: U8(), st: U8(), an: U8(), fixed: U8(), alt: U8(), form: I16(), crew: I16() });
   },
 
   // ---------- spawning ----------
@@ -122,7 +150,7 @@ export const crowd = {
     const i = this.n++; this.type[i] = type; this.x[i] = this.hx[i] = x; this.z[i] = this.hz[i] = z; this.yaw[i] = yaw; this.form[i] = form ? form.id : -1; this.crew[i] = -1;
     if (y === null) { this.y[i] = terrain.height(x, z); this.fixed[i] = 0; } else { this.y[i] = y; this.fixed[i] = 1; } this.hy[i] = this.y[i];
     this.st[i] = ST.FORM; this.an[i] = A.Idle; this.at[i] = Math.random() * 2; this.bl[i] = 0; this.ph[i] = Math.random();
-    const h = form ? form.herald : HERALD[0]; _c.setHex(h[0]); this.tr[i] = _c.r; this.tg[i] = _c.g; this.tb[i] = _c.b; this.sc[i] = type === TY.WARLORD ? 1.4 : 0.94 + Math.random() * 0.12; this.tum[i] = 0;
+    const h = form ? form.herald : HERALD[0]; _c.setHex(h[0]); this.tr[i] = _c.r; this.tg[i] = _c.g; this.tb[i] = _c.b; this.sc[i] = type === TY.WARLORD ? 1.4 : 0.94 + Math.random() * 0.12; this.tum[i] = 0; this.alt[i] = type !== TY.WARLORD && Math.random() < 0.42 ? 1 : 0; // alt: stands in the second idle stance
     if (form) { form.agents.push(i); if (type === TY.KNIGHT || type === TY.WARLORD) form.guard.push(i); }
     return i;
   },
@@ -198,7 +226,7 @@ export const crowd = {
 
   setAnim(i, a, restart = true) {
     if (this.an[i] === a) return; const c = this.clip[this.an[i]];
-    this.prow[i] = c.start + this._frame(c, this.at[i], i); this.bl[i] = 1; this.an[i] = a; if (restart) this.at[i] = LOOP[a] ? Math.random() * this.clip[a].dur : 0;
+    this.prow[i] = c.start + this._frame(c, this.at[i], i) + (this.an[i] === A.Idle && this.alt[i] ? this.idleB : 0); this.bl[i] = 1; this.an[i] = a; if (restart) this.at[i] = LOOP[a] ? Math.random() * this.clip[a].dur : 0;
   },
   _frame(c, t, i) { const k = LOOP[this.an[i]] ? (t % c.dur) / c.dur : Math.min(t / c.dur, 1); return k * (c.frames - 1); },
 
@@ -363,7 +391,7 @@ export const crowd = {
       const c = clip[this.an[i]]; const fr = LOOP[this.an[i]] ? ((this.at[i] % c.dur) / c.dur) * (c.frames - 1) : Math.min(Math.max(this.at[i], 0) / c.dur, 1) * (c.frames - 1);
       const P = b.iPos.array, An = b.iAnim.array, T = b.iTint.array;
       P[o] = this.x[i]; P[o + 1] = this.y[i]; P[o + 2] = this.z[i]; P[o + 3] = this.yaw[i];
-      An[o] = c.start + fr; An[o + 1] = this.prow[i]; An[o + 2] = this.bl[i]; An[o + 3] = this.sc[i];
+      An[o] = c.start + fr + (this.an[i] === A.Idle && this.alt[i] ? this.idleB : 0); An[o + 1] = this.prow[i]; An[o + 2] = this.bl[i]; An[o + 3] = this.sc[i];
       T[o] = this.tr[i]; T[o + 1] = this.tg[i]; T[o + 2] = this.tb[i]; T[o + 3] = this.tum[i];
     }
     for (const t of B) for (const b of t) if (b) { b.geo.instanceCount = b.n; b.iPos.needsUpdate = b.iAnim.needsUpdate = b.iTint.needsUpdate = true; b.mesh.visible = b.n > 0; }

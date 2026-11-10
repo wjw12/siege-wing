@@ -5,8 +5,10 @@ export const assets = { heli: null, soldiers: null, props: null, village: null }
 export async function loadAssets(onProgress, groundSize = 1024, aniso = 8) {
   const loader = new GLTFLoader(); const names = ['heli', 'soldiers', 'props', 'village']; let done = 0;
   const gp = loadGround(groundSize, aniso).then(g => { assets.ground = g; });
+  // soldier atlas (tools/blender/soldier_atlas.py): detail x vertex colour, alpha = heraldic tint mask. The crowd falls back to plain white if it is missing.
+  const sp = new THREE.TextureLoader().loadAsync('./assets/textures/soldiers/atlas.png').then(t => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.premultiplyAlpha = false; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = aniso; assets.soldierTex = t; }).catch(() => { assets.soldierTex = null; });
   await Promise.all(names.map(n => loader.loadAsync(`./assets/models/${n === 'heli' ? 'heli' : n}.glb`).then(g => { assets[n] = g; done++; onProgress && onProgress(done / names.length); })));
-  await gp;
+  await gp; await sp;
   return assets;
 }
 // find a top-level-ish node by name
