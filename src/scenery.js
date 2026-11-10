@@ -145,23 +145,33 @@ export const scenery = {
             if (${far ? 'swD <= swR' : 'swD > swR'}) transformed *= 0.0; }
           #endif`); };
     const folFull = fol.clone(); patchMaterial(folFull, 'foliageNear', swap(false)); const folLod = fol.clone(); patchMaterial(folLod, 'foliageFar', swap(true));
+    // Identity parents retain the original instance/world transforms and draw order.
+    // Bounds enclose the exact child spheres already used by Three.js culling.
+    const group = (meshes, key) => {
+      const g = new THREE.Group(); g.name = 'forest-' + key;
+      const bounds = new THREE.Sphere().makeEmpty();
+      for (const mesh of meshes) { g.add(mesh); bounds.union(mesh.boundingSphere); mesh.visible = true; }
+      bounds.radius += 0.001; // conservative floating-point margin
+      g.userData.swSubtreeSphere = bounds;
+      g.userData.swNoShadow = key === 'lod'; // far trees never cast PCF shadows
+      g.visible = key === 'lod'; g.matrixAutoUpdate = false;
+      scene.add(g); return g;
+    };
+    // Full-detail trees stay in 160 m cells (only the few near the camera are shown). Far trees are packed into 640 m super-cells:
+    // the vertex shader already collapses each far tree inside its own swap radius, so a super-cell is always drawn and only
+    // frustum-culled as a whole. That is ~3 draw calls per 640 m instead of per 160 m (≈550 → ≈75 a frame).
+    const SC = 640; const supers = new Map();
     for (const c of cells.values()) {
-      c.full = []; c.lod = [];
+      c.full = [];
       c.lists.forEach((l, i) => { const im = instanced(scene, geos[i], folFull, l, true); if (im) { im.visible = false; c.full.push(im); } });
-      for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak], [c.lb, lodBirch]]) { const im = instanced(scene, g, folLod, l, false); if (im) c.lod.push(im); }
-      // Identity parents retain the original instance/world transforms and draw order.
-      // Bounds enclose the exact child spheres already used by Three.js culling.
-      for (const key of ['full', 'lod']) {
-        const group = new THREE.Group(); group.name = 'forest-' + key;
-        const bounds = new THREE.Sphere().makeEmpty();
-        for (const mesh of c[key]) { group.add(mesh); bounds.union(mesh.boundingSphere); mesh.visible = true; }
-        bounds.radius += 0.001; // conservative floating-point margin
-        group.userData.swSubtreeSphere = bounds;
-        group.userData.swNoShadow = key === 'lod'; // existing LODs never cast PCF shadows
-        group.visible = key === 'lod'; group.matrixAutoUpdate = false;
-        scene.add(group); c[key + 'Group'] = group;
-      }
+      c.fullGroup = group(c.full, 'full');
+      const k = Math.floor(c.cx / SC) + ',' + Math.floor(c.cz / SC); let s = supers.get(k); if (!s) supers.set(k, s = { lp: [], lo: [], lb: [] });
+      for (const t of c.lp) s.lp.push(t); for (const t of c.lo) s.lo.push(t); for (const t of c.lb) s.lb.push(t);
       this.cells.push(c);
+    }
+    for (const s of supers.values()) {
+      const lod = []; for (const [l, g] of [[s.lp, lodPine], [s.lo, lodOak], [s.lb, lodBirch]]) { const im = instanced(scene, g, folLod, l, false); if (im) lod.push(im); }
+      group(lod, 'lod');
     }
   },
 
@@ -442,7 +452,7 @@ export const scenery = {
   update(dt, camera) {
     const cx = camera.position.x, cz = camera.position.z;
     // forest LOD
-    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); c.fullGroup.visible = d < TREE_R + 28 + 114; c.lodGroup.visible = d > TREE_R - 28 - 114; } // 114 = half-diagonal of a cell; the shader picks per tree inside the band
+    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); c.fullGroup.visible = d < TREE_R + 28 + 114; } // 114 = half-diagonal of a cell; the shader picks per tree inside the band (far trees: always submitted, see _forest)
     this.grassU.uCamG.value.copy(camera.position);
     if (this.millSails) this.millSails.rotation.z += dt * 0.5;
     if (this.windsock) this.windsock.rotation.y = 1.9 + Math.sin(G.time * 0.7) * 0.25 + Math.sin(G.time * 2.3) * 0.06;

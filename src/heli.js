@@ -360,6 +360,41 @@ export const heli = {
     root.traverse(o => { if (o.isMesh && o.material && /glass/i.test(o.material.name)) { const m = o.material = new THREE.MeshPhysicalMaterial({ color: 0x1a2a2a, roughness: 0.06, metalness: 0.0, transparent: true, opacity: 0.38, envMapIntensity: 1.6, side: THREE.DoubleSide, depthWrite: false }); m.name = 'Glass'; o.renderOrder = 5; o.castShadow = false; this.glass = o; } });
     { const hg = root.getObjectByName('HUDGlass'); if (hg) hg.traverse(o => { if (o.isMesh) o.material = new THREE.MeshPhysicalMaterial({ color: 0xa8d8b8, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.06, envMapIntensity: 0.5, depthWrite: false, side: THREE.DoubleSide }); }); }
     damage.init(this);   // canopy glass gets its own material carrying wear, cracks and oil
+    this._shadowProxy(root);
+  },
+  // Shadow-only merged copies of the model: the airframe was ~180 separate shadow draws per cascade. Each node the code moves or
+  // hides (turret, sticks, pilot head, missiles, break-off panels, lights) gets its own merged proxy parented to it, so the shadow
+  // follows its motion and visibility; everything else is one proxy on the root. Rotors toggle per-mesh visibility, so they keep their own casters.
+  _shadowProxy(root) {
+    const DYN = /^(MainRotor|TailRotor|TurretYaw|GunPitch|Cyclic|Collective|PilotHead|Missile_[LR]\d$|Part_|Needle|Horizon|Light_)/;
+    // glTF splits multi-material meshes into Name_1, Name_2… children: those move with their parent, except break-off panels, which are hidden one by one
+    const owner = o => { for (let p = o; p && p !== root; p = p.parent) if (DYN.test(p.name) && (!/_\d+$/.test(p.name) || /^Part_/.test(p.name))) return p; return root; };
+    root.updateWorldMatrix(true, true);
+    const sets = new Map();
+    root.traverse(o => {
+      if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || !o.castShadow) return;
+      const own = owner(o); if (/^(MainRotor|TailRotor)/.test(own.name)) return;
+      if (/^(Needle|Horizon)/.test(own.name)) { o.castShadow = false; return; }   // gauge parts behind the panel glass: no visible shadow
+      const mat = o.material; if (Array.isArray(mat) || mat.transparent || mat.alphaTest > 0 || !o.geometry.attributes.position) return;
+      const key = own.uuid + '|' + mat.side + '|' + mat.shadowSide;
+      if (!sets.has(key)) sets.set(key, { own, inv: new THREE.Matrix4().copy(own.matrixWorld).invert(), side: mat.side, shadowSide: mat.shadowSide, list: [] });
+      const s = sets.get(key); s.list.push([o.geometry, new THREE.Matrix4().multiplyMatrices(s.inv, o.matrixWorld)]); o.castShadow = false;
+    });
+    for (const s of sets.values()) {
+      let nv = 0, ni = 0; for (const [g] of s.list) { nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), idx = new Uint32Array(ni); let ov = 0, oi = 0;
+      for (const [g, mx] of s.list) {
+        const P = g.attributes.position, I = g.index;
+        for (let i = 0; i < P.count; i++) { _v.fromBufferAttribute(P, i).applyMatrix4(mx); pos[(ov + i) * 3] = _v.x; pos[(ov + i) * 3 + 1] = _v.y; pos[(ov + i) * 3 + 2] = _v.z; }
+        const n = I ? I.count : P.count; for (let i = 0; i < n; i++) idx[oi + i] = (I ? I.getX(i) : i) + ov;
+        ov += P.count; oi += n;
+      }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere();
+      const pm = new THREE.MeshBasicMaterial({ side: s.side }); pm.shadowSide = s.shadowSide;
+      const proxy = new THREE.Mesh(g, pm); proxy.name = 'ShadowProxy'; proxy.castShadow = true; proxy.receiveShadow = false; proxy.frustumCulled = false;
+      proxy.userData.swShadowOnly = true;   // vendor three.js patch: skipped by the camera pass, drawn only into shadow maps
+      s.own.add(proxy);
+    }
   },
   _buildRotorBlur() {
     const n = this.nodes; if (!n.MainRotor) return;

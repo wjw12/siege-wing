@@ -24,30 +24,51 @@ import { perf } from './perf.js';
 
 dev.init();
 installShaderPatches();
-const QUALITIES = { high: { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 }, medium: { px: 1.0, maxW: 1600, shadow: 2048, tex: 1024, aniso: 8, ss: 1 }, low: { px: 0.8, maxW: 1280, shadow: 1024, tex: 512, aniso: 4, ss: 1 } };
+// px/maxW: output (canvas) resolution; ss: scene render scale at start (above 1 = supersampling); maxPix: ceiling on scene pixels;
+// msaa: samples on the HDR scene target (FXAA runs on every preset)
+const QUALITIES = {
+  high: { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3, maxPix: 2560 * 1440, msaa: 4 },
+  medium: { px: 1.0, maxW: 1600, shadow: 2048, tex: 1024, aniso: 8, ss: 1, maxPix: 1920 * 1080, msaa: 2 },
+  low: { px: 0.8, maxW: 1280, shadow: 1024, tex: 512, aniso: 4, ss: 1, maxPix: 1280 * 720, msaa: 0 },
+};
 const QUALITY = { ...(QUALITIES[Q.get('q') || settings.quality] || QUALITIES.high) };
 if (Q.has('ss')) QUALITY.ss = +Q.get('ss');
+if (Q.has('msaa')) QUALITY.msaa = +Q.get('msaa');
 const canvas = document.getElementById('c');
 const renderer = G.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: false });
 renderer.shadowMap.enabled = !Q.has('noshadow'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.NoToneMapping; renderer.info.autoReset = false;
 const scene = G.scene = new THREE.Scene();
 const camera = G.camera = new THREE.PerspectiveCamera(70, 1, 0.6, 14000);
-post.init(renderer);
-let ssCur = QUALITY.ss; // supersampling factor for the 3D scene (anti-aliasing); stepped down automatically if the GPU can't hold frame rate
+post.init(renderer, QUALITY.msaa);
+// ---- dynamic resolution: the 3D scene renders at ssCur x the output resolution (FXAA, HUD and text stay at full output resolution) ----
+const SS_MIN = 0.75;
+let ssCur = QUALITY.ss;
 function resize() { const w = innerWidth, h = innerHeight; const pr = Math.min(devicePixelRatio || 1, QUALITY.maxW / w, QUALITY.px); renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-  const ow = Math.round(w * pr), oh = Math.round(h * pr); const ss = Math.min(ssCur, Math.max(1, 2880 / ow)); post.resize(ow, oh, ss); }
-const ssGov = { t: 0, n: 0, acc: 0 };
+  const ow = Math.round(w * pr), oh = Math.round(h * pr); const ss = Math.max(SS_MIN, Math.min(ssCur, Math.sqrt(QUALITY.maxPix / (ow * oh)))); post.resize(ow, oh, ss); }
+// Measures the real frame time in 2 s windows while flying. Under 48 FPS it steps the scale down (bigger steps when far off);
+// at ~57+ FPS for 8 s it climbs back by 0.05, never straight back to a scale that was too slow in the last 30 s.
+// If a step down bought nothing (the frame is CPU-bound, not pixel-bound) it is undone and cuts pause for 30 s (longer each repeat).
+const ssGov = { acc: 0, n: 0, good: 0, prevAvg: 0, cut: false, badAt: 0, badSS: 9, holdUntil: 0, undos: 0 };
 function ssGovern(rdt, active) { // called once per rendered frame with the real frame time
-  if (!active || ssCur <= 1 || Q.has('ss')) { ssGov.n = 0; ssGov.acc = 0; return; }
-  ssGov.acc += Math.min(rdt, 0.1); ssGov.n++;
-  if (ssGov.n >= 150) { const avg = ssGov.acc / ssGov.n; ssGov.n = 0; ssGov.acc = 0; if (avg > 1 / 48) { ssCur = ssCur > 1.16 ? 1.15 : 1; resize(); dev.log('SS ' + ssCur + ' avgMs=' + (avg * 1000).toFixed(1)); } }
+  const g = ssGov;
+  if (!active || Q.has('ss')) { g.acc = 0; g.n = 0; return; }
+  g.acc += Math.min(rdt, 0.25); g.n++; if (g.acc < 2) return;
+  const avg = g.acc / g.n, now = performance.now() / 1000; g.acc = 0; g.n = 0;
+  const top = QUALITY.ss, before = ssCur;
+  if (g.cut && avg > g.prevAvg * 0.97) { ssCur = Math.min(top, ssCur + g.cut); g.holdUntil = now + Math.min(120, 30 * ++g.undos); g.good = 0; }   // that cut did not help: undo it
+  else if (avg > 1 / 48 && ssCur > SS_MIN + 0.001 && now > g.holdUntil) { const step = avg > 1 / 32 ? 0.15 : 0.08; g.badSS = ssCur; g.badAt = now; ssCur = Math.max(SS_MIN, ssCur - step); g.good = 0; }
+  else if (avg < 1 / 57) { g.good += 2; if (g.good >= 8 && ssCur < top - 0.001 && (ssCur + 0.05 < g.badSS - 0.001 || now - g.badAt > 30)) { ssCur = Math.min(top, ssCur + 0.05); g.good = 0; } }
+  else g.good = 0;
+  g.cut = ssCur < before ? before - ssCur : false; g.prevAvg = avg;
+  if (ssCur !== before) { ssCur = Math.round(ssCur * 100) / 100; resize(); dev.log('SS ' + ssCur + ' avgMs=' + (avg * 1000).toFixed(1)); }
 }
 addEventListener('resize', resize); resize();
-// switch graphics quality mid-session: resolution, supersampling and shadow-map size change live; texture size and forest range need a reload
+// switch graphics quality mid-session: resolution, scene scale, MSAA and shadow-map size change live; texture size and forest range need a reload
 function applyQuality(name) {
   const q = QUALITIES[name]; if (!q) return;
-  Object.assign(QUALITY, { px: q.px, maxW: q.maxW, shadow: q.shadow }); if (!Q.has('ss')) QUALITY.ss = q.ss; ssCur = QUALITY.ss; ssGov.n = 0; ssGov.acc = 0;
+  Object.assign(QUALITY, { px: q.px, maxW: q.maxW, shadow: q.shadow, maxPix: q.maxPix, msaa: q.msaa }); if (!Q.has('ss')) QUALITY.ss = q.ss; ssCur = QUALITY.ss; Object.assign(ssGov, { acc: 0, n: 0, good: 0, cut: false, badSS: 9, holdUntil: 0, undos: 0 });
+  post.setSamples(QUALITY.msaa);
   for (const l of [sky.sun, sky.sun2]) if (l) { l.shadow.mapSize.set(q.shadow, q.shadow); if (l.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null; } }
   resize(); dev.log('QUALITY ' + name);
 }

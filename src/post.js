@@ -1,4 +1,4 @@
-// Siege Wing — HDR post pipeline: supersampled MSAA scene → light shafts → bloom → DOF/grade/tonemap → FXAA + grain
+// Siege Wing — HDR post pipeline: dynamically scaled MSAA scene → light shafts → bloom → DOF/grade/tonemap → FXAA + grain
 import * as THREE from 'three';
 import { G, V3, clamp } from './core.js';
 
@@ -13,12 +13,12 @@ function pass(frag, uniforms) {
 export const post = {
   // live parameters other systems poke
   p: { exposure: 1, bloom: 0.5, shafts: 0.55, vignette: 0.32, grain: 0.035, dof: 0, damage: 0, flash: 0, edgeDark: 0, sat: 1.14, chroma: 0.0012, shake: 0, desat: 0, fade: 0 },
-  init(renderer) {
+  init(renderer, samples = 4) {
     this.r = renderer; this.scene = new THREE.Scene(); this.cam = new THREE.Camera();
     this.quad = new THREE.Mesh(quadGeo, null); this.quad.frustumCulled = false; this.scene.add(this.quad);
     const hf = { type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter };
     this.hf = hf;
-    this.rtScene = new THREE.WebGLRenderTarget(4, 4, { ...hf, depthBuffer: true, samples: 4 });
+    this.rtScene = new THREE.WebGLRenderTarget(4, 4, { ...hf, depthBuffer: true, samples });
     this.rtScene.depthTexture = new THREE.DepthTexture(4, 4); this.rtScene.depthTexture.type = THREE.UnsignedIntType;
     this.rtLDR = new THREE.WebGLRenderTarget(4, 4, { type: THREE.UnsignedByteType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
     this.rtShaftA = new THREE.WebGLRenderTarget(4, 4, hf); this.rtShaftB = new THREE.WebGLRenderTarget(4, 4, hf);
@@ -139,7 +139,9 @@ export const post = {
         gl_FragColor = vec4(col, 1.0);
       }`, { tIn: { value: null }, uNoise: G.U.uNoise, uInv: { value: new THREE.Vector2() }, uRes: { value: new THREE.Vector2() }, uTime: G.U.uTime, uGrain: { value: 0.03 }, uOn: { value: 1 } });
   },
-  // w,h = output (canvas) pixels; ss = scene supersampling factor (1 = none)
+  // MSAA samples on the HDR scene target (0 = off); three re-creates the target with the new count on next use
+  setSamples(n) { if (this.rtScene.samples === n) return; this.rtScene.samples = n; this.rtScene.dispose(); },
+  // w,h = output (canvas) pixels; ss = scene render scale (>1 supersampled, <1 upscaled by the final pass)
   resize(w, h, ss = 1) {
     this.w = w; this.h = h; this.ss = ss; this.rtScene.setSize(Math.round(w * ss), Math.round(h * ss)); this.rtLDR.setSize(w, h);
     this.mFinal.uniforms.uSS.value = ss; this.mFxaa.uniforms.uInv.value.set(1 / w, 1 / h); this.mFxaa.uniforms.uRes.value.set(w, h);

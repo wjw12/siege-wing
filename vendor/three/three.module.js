@@ -30190,6 +30190,7 @@ class WebGLRenderer {
 
 			if ( object.visible === false ) return;
 			if ( object.userData.swSubtreeSphere && ! _frustum.intersectsSphere( object.userData.swSubtreeSphere ) ) return;
+			if ( object.userData.swShadowOnly ) return; // Siege Wing: shadow-caster proxies are drawn only by WebGLShadowMap
 
 			const visible = object.layers.test( camera.layers );
 
