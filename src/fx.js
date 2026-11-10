@@ -101,7 +101,10 @@ export const fx = {
       transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
       vertexShader: `attribute vec4 iA; attribute vec4 iB; attribute vec4 iC; varying vec2 vUv; varying vec4 vC;
         void main(){ vUv = position.xy; vC = iC; vec3 head = iA.xyz; vec3 tail = iA.xyz - iB.xyz; // iB.xyz = dir*len
-          vec4 h = viewMatrix * vec4(head, 1.0), t = viewMatrix * vec4(tail, 1.0); vec2 d = normalize(h.xy - t.xy + 1e-5); vec2 nrm = vec2(-d.y, d.x);
+          vec4 h = viewMatrix * vec4(head, 1.0), t = viewMatrix * vec4(tail, 1.0);
+          // a streak with one end at or behind the lens would project as a screen-filling cone: fade it out and keep both ends in front
+          vC.a *= smoothstep(1.0, 5.0, min(-h.z, -t.z)); h.z = min(h.z, -0.5); t.z = min(t.z, -0.5);
+          vec2 d = normalize(h.xy - t.xy + 1e-5); vec2 nrm = vec2(-d.y, d.x);
           float wd = max(iA.w, -min(h.z, t.z) * 0.0011); // keep visible at range
           vec4 p = mix(t, h, position.x); p.xy += nrm * position.y * wd; gl_Position = projectionMatrix * p; }`,
       fragmentShader: `varying vec2 vUv; varying vec4 vC; void main(){ float a = (1.0 - abs(vUv.y)); a *= a; float l = smoothstep(0.0, 0.5, vUv.x); gl_FragColor = vec4(vC.rgb * a * l * vC.a, 1.0); }`,

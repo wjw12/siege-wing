@@ -146,7 +146,7 @@ export const weapons = {
   _explodeRocket(x, y, z, c) {
     _v.set(x, y, z);
     if (!c && y < L.WATER_Y + 0.2) { fx.splash(x, z, 2.2); audio.play('explSmall', { pos: [x, y, z], water: true }); return; }
-    fx.explosion(_v, 1.15, { fire: Math.random() < 0.3, fireLife: 14, debrisColor: c && c.kind !== 'tree' ? 0x8a8378 : 0x3b2e20 });
+    fx.explosion(_v, 1.5, { fire: Math.random() < 0.3, fireLife: 14, debrisColor: c && c.kind !== 'tree' ? 0x8a8378 : 0x3b2e20 });
     audio.play('explMedium', { pos: [x, y, z] });
     this.kills += crowd.blast(x, y, z, 10, 12, 1);
     castle.damageAt(_v, 7, 62); threats.damageAt(_v, 8, 110);
@@ -187,7 +187,7 @@ export const weapons = {
       let hit = world.segHit(m.x, m.y, m.z, nx, ny, nz, 1.5, true);
       let direct = false; if (m.target && Math.hypot(m.target.x - nx, m.target.y - ny, m.target.z - nz) < 6) { direct = true; hit = hit || { x: nx, y: ny, z: nz, c: null }; }
       if (hit || m.t > 9) {
-        if (hit) { _v.set(hit.x, hit.y, hit.z); fx.explosion(_v, 1.9, { fire: true, fireLife: 20, debrisColor: 0x8a8378 }); audio.play('explLarge', { pos: [hit.x, hit.y, hit.z] });
+        if (hit) { _v.set(hit.x, hit.y, hit.z); fx.explosion(_v, 2.4, { fire: true, fireLife: 20, debrisColor: 0x8a8378 }); audio.play('explLarge', { pos: [hit.x, hit.y, hit.z] });
           this.kills += crowd.blast(hit.x, hit.y, hit.z, 12, 14, 1);
           const ref = direct ? m.target.ref : hit.c && hit.c.ref;
           if (ref && ref.type) castle.damage(ref, 150, _v); else if (ref && ref.kind) threats.destroy(ref);
