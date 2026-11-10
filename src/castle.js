@@ -174,7 +174,7 @@ export const castle = {
     // ---- courtyard: great hall, stables, chapel, smithy, well, stores, wall stairs; drawbridge at the barbican ----
     this._yard(B, WH);
     // ---- courtyard dressing: fire pots (lit in phase 3) ----
-    for (const p of [[18, -26], [18, 26], [-2, -40], [-2, 40], [38, 0], [-50, -30], [-50, 32]]) this.firePots.push({ x: C.x + p[0], y: B, z: C.z + p[1], lit: false, emitter: null });
+    for (const p of [[18, -26], [18, 26], [-2, -28], [-2, 40], [38, 0], [-50, -30], [-40, 22]]) this.firePots.push({ x: C.x + p[0], y: B, z: C.z + p[1], lit: false, emitter: null });
     // ---- mounts ----
     for (const t of this.towers) this.mounts.ballista.push({ x: t.x, y: t.topY, z: t.z, tower: t });
     const bomb = [[60, -32, 0], [60, 32, 0], [0, -53, -Math.PI / 2 * 1], [-2, 56, Math.PI / 2], [82, -10.3, -Math.PI / 2]];
