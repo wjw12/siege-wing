@@ -122,7 +122,7 @@ export const crowd = {
     const i = this.n++; this.type[i] = type; this.x[i] = this.hx[i] = x; this.z[i] = this.hz[i] = z; this.yaw[i] = yaw; this.form[i] = form ? form.id : -1; this.crew[i] = -1;
     if (y === null) { this.y[i] = terrain.height(x, z); this.fixed[i] = 0; } else { this.y[i] = y; this.fixed[i] = 1; } this.hy[i] = this.y[i];
     this.st[i] = ST.FORM; this.an[i] = A.Idle; this.at[i] = Math.random() * 2; this.bl[i] = 0; this.ph[i] = Math.random();
-    const h = form ? form.herald : HERALD[0]; _c.setHex(h[0]); this.tr[i] = _c.r; this.tg[i] = _c.g; this.tb[i] = _c.b; this.sc[i] = type === TY.WARLORD ? 1.2 : 0.94 + Math.random() * 0.12; this.tum[i] = 0;
+    const h = form ? form.herald : HERALD[0]; _c.setHex(h[0]); this.tr[i] = _c.r; this.tg[i] = _c.g; this.tb[i] = _c.b; this.sc[i] = type === TY.WARLORD ? 1.4 : 0.94 + Math.random() * 0.12; this.tum[i] = 0;
     if (form) { form.agents.push(i); if (type === TY.KNIGHT || type === TY.WARLORD) form.guard.push(i); }
     return i;
   },
@@ -171,7 +171,7 @@ export const crowd = {
     { const cx = L.CASTLE.x + 22, cz = L.CASTLE.z; const f = this.guardForm = this._form('guard', "Warlord's Guard", cx, cz, E, 5); f.stationary = true; f.radius = 12;
       this.warlord = this._add(TY.WARLORD, cx, cz, E, f);
       for (let ring = 0; ring < 3; ring++) { const nn = 12 + ring * 8; for (let i = 0; i < nn; i++) { const a = i / nn * TAU + ring * 0.2, r = 3 + ring * 2.2; this._add(TY.KNIGHT, cx + Math.cos(a) * r, cz + Math.sin(a) * r, a + Math.PI / 2 * 0 + Math.atan2(Math.cos(a), Math.sin(a)) - a, f); } }
-      this._banner(f, 1.3); f.banner.position.x -= 3; }
+      this._banner(f, 1.3); f.banner.position.x -= 9; f.banner.position.z -= 7; } // standard set back so it never hides the warlord
     // --- courtyard + camp garrison ---
     { const f = this.campForm = this._form('camp', 'Camp', -60, 10, E, 3); f.radius = 130;
       for (let i = 0; i < 150; i++) { const x = -150 + rng() * 190, z = -150 + rng() * 320; if (terrain.height(x, z) > 40) continue; this._add(rng() < 0.85 ? TY.INF : TY.ARCH, x, z, rng() * TAU, f); } }

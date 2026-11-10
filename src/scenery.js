@@ -307,9 +307,10 @@ export const scenery = {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
     const mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, fog: false,
-      uniforms: { uZen: { value: new THREE.Color(0.1, 0.2, 0.4) } },
+      uniforms: { uZen: { value: new THREE.Color(0.1, 0.2, 0.4) }, uHM: { value: this.hmTex = (() => { const t = new THREE.DataTexture(terrain.hm, N, N, THREE.RedFormat, THREE.FloatType); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; return t; })() } },
       vertexShader: `varying vec3 vW; void main(){ vW = position; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: /* glsl */`precision highp float; varying vec3 vW; uniform sampler2D uNoise; uniform float uTime; uniform vec3 uSunCol; uniform vec3 uZen; uniform vec4 uHeli;
+      fragmentShader: /* glsl */`precision highp float; varying vec3 vW; uniform sampler2D uNoise; uniform float uTime; uniform vec3 uSunCol; uniform vec3 uZen; uniform vec4 uHeli; uniform sampler2D uHM;
+        float bedAt(vec2 p){ vec2 uv = (p + ${HALF}.0) / ${2 * HALF}.0 * ${N - 1}.0 / ${N}.0 + 0.5 / ${N}.0; return texture2D(uHM, uv).r; }
         ${GLSL_FOG} ${GLSL_FARSH}
         void main(){
           vec3 V = normalize(cameraPosition - vW); float d = length(cameraPosition - vW);
@@ -326,11 +327,19 @@ export const scenery = {
           vec3 skyR = mix(hor, uZen, 1.0 - exp(-R.y * 4.0));
           float sh = swFarShadow(vW + vec3(0.0, 0.5, 0.0));
           float spec = pow(max(dot(R, uSunDir), 0.0), 380.0) * 14.0 + pow(max(dot(R, uSunDir), 0.0), 40.0) * 0.35;
-          vec3 deep = vec3(0.018, 0.035, 0.028) * (0.4 + dot(uSunCol, vec3(0.12)));
-          vec3 col = mix(deep, skyR, fres) + uSunCol * spec * sh;
+          // water depth from the terrain heightmap: clear shallows over the shingle, soft shoreline, a broken line of foam at the edge
+          float depth = ${L.WATER_Y.toFixed(1)} - bedAt(vW.xz) + (n1.x + n2.y) * 0.25;
+          float lum = 0.4 + dot(uSunCol, vec3(0.12));
+          vec3 deep = vec3(0.018, 0.035, 0.028) * lum, shal = vec3(0.10, 0.105, 0.06) * lum;
+          vec3 body = mix(shal, deep, smoothstep(0.15, 2.4, depth));
+          vec3 col = mix(body, skyR, fres * smoothstep(0.0, 0.6, depth)) + uSunCol * spec * sh * smoothstep(0.1, 0.8, depth);
+          float foamN = texture2D(uNoise, vW.xz * 0.31 + fl * 6.0).b;
+          float foam = smoothstep(0.42, 0.08, depth) * smoothstep(0.35, 0.6, foamN + 0.25 * sin(depth * 14.0 - uTime * 1.6));
+          col = mix(col, vec3(0.55, 0.56, 0.52) * (lum + 0.15) * (0.35 + 0.65 * sh), foam * 0.75);
+          float shore = smoothstep(-0.05, 0.35, depth);
           col += vec3(0.5, 0.55, 0.55) * wash * (0.25 + 0.5 * max(rip, 0.0)) * dot(uSunCol + 0.3, vec3(0.1));
           col = swFog(col, vW);
-          gl_FragColor = vec4(col, 0.93);
+          gl_FragColor = vec4(col, 0.93 * shore);
         }`,
     });
     this.waterMat = mat;
