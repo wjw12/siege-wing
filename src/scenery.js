@@ -136,10 +136,19 @@ export const scenery = {
       if (r < 1750) { const col = world.addCyl(x, z, Math.max(1.0, dims[t][1] * s * 0.55), y, y + dims[t][0] * s - 1.0, 'tree'); col.hard = true; }
     }
     const fol = this.mats.foliage;
+    // Near/far tree swap happens per tree, each at its own slightly different radius, instead of a whole 160 m cell flipping at once:
+    // both models of a cell are submitted in a band around TREE_R and the vertex shader collapses whichever one is not due.
+    const swap = far => sh => { this.windPatch(sh); sh.uniforms.uTreeR = { value: TREE_R };
+      sh.vertexShader = sh.vertexShader.replace('uniform float uTime;', 'uniform float uTime; uniform float uTreeR;').replace('vTW = wpv;', `vTW = wpv;
+          #ifdef USE_INSTANCING
+          { float swD = length(ip.xz - cameraPosition.xz); float swR = uTreeR + (fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 56.0;
+            if (${far ? 'swD <= swR' : 'swD > swR'}) transformed *= 0.0; }
+          #endif`); };
+    const folFull = fol.clone(); patchMaterial(folFull, 'foliageNear', swap(false)); const folLod = fol.clone(); patchMaterial(folLod, 'foliageFar', swap(true));
     for (const c of cells.values()) {
       c.full = []; c.lod = [];
-      c.lists.forEach((l, i) => { const im = instanced(scene, geos[i], fol, l, true); if (im) { im.visible = false; c.full.push(im); } });
-      for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak], [c.lb, lodBirch]]) { const im = instanced(scene, g, fol, l, false); if (im) c.lod.push(im); }
+      c.lists.forEach((l, i) => { const im = instanced(scene, geos[i], folFull, l, true); if (im) { im.visible = false; c.full.push(im); } });
+      for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak], [c.lb, lodBirch]]) { const im = instanced(scene, g, folLod, l, false); if (im) c.lod.push(im); }
       // Identity parents retain the original instance/world transforms and draw order.
       // Bounds enclose the exact child spheres already used by Three.js culling.
       for (const key of ['full', 'lod']) {
@@ -433,7 +442,7 @@ export const scenery = {
   update(dt, camera) {
     const cx = camera.position.x, cz = camera.position.z;
     // forest LOD
-    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); const near = d < (c.fullGroup.visible ? TREE_R + 30 : TREE_R); /* hysteresis: no flicker at the ring */ c.fullGroup.visible = near; c.lodGroup.visible = !near; }
+    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); c.fullGroup.visible = d < TREE_R + 28 + 114; c.lodGroup.visible = d > TREE_R - 28 - 114; } // 114 = half-diagonal of a cell; the shader picks per tree inside the band
     this.grassU.uCamG.value.copy(camera.position);
     if (this.millSails) this.millSails.rotation.z += dt * 0.5;
     if (this.windsock) this.windsock.rotation.y = 1.9 + Math.sin(G.time * 0.7) * 0.25 + Math.sin(G.time * 2.3) * 0.06;

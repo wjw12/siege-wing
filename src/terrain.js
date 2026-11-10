@@ -186,7 +186,7 @@ export const terrain = {
           vec3 gLush = vec3(0.115, 0.17, 0.035), gDry = vec3(0.34, 0.27, 0.085), gDark = vec3(0.05, 0.085, 0.022);
           float dry = smoothstep(0.38, 0.68, n1 * 0.55 + n2 * 0.45) * (1.0 - 0.6 * smoothstep(120.0, 330.0, wp.y + n2 * 60.0)); // upland turf stays greener
           float cragK = smoothstep(300.0, 215.0, length(wp.xz - vec2(${L.CASTLE.x.toFixed(1)}, ${L.CASTLE.z.toFixed(1)}))) * smoothstep(0.035, 0.11, slope); // the castle stands on bare rock, not a lawn
-          float rockM = smoothstep(0.20, 0.40, slope + (n3 - 0.5) * 0.18 + smoothstep(230.0, 560.0, wp.y + n1 * 160.0) * 0.3 + cragK * (0.16 + 0.12 * n2));
+          float rockM = smoothstep(0.20, 0.40, slope + (n3 - 0.5) * 0.18 + smoothstep(230.0, 560.0, wp.y + n1 * 160.0) * 0.3 + cragK * (0.16 + 0.12 * n2) + (texture2D(uNoise, wp.xz * 0.00083 + 0.21).g - 0.5) * 0.34 * smoothstep(1100.0, 2400.0, camD)); // break up the coarse far mesh's radial banding
           // ---- grass: meadow, straw-dry and lush patches ----
           SwS g = swSamp(1, 0.43, 0.061, mix(gLush, gDry, 0.3), 0.72);
           if (dry > 0.004) { SwS d = swSamp(2, 0.37, 0.052, gDry, 0.72); swMix(g, d, swHB(dry, d.h - g.h)); }
