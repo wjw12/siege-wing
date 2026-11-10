@@ -464,7 +464,7 @@ export const heli = {
       camera.near = 0.6;
       const hs = this.hspeed;
       // heading the camera sits behind: nose, swinging toward the velocity at speed
-      let ty = this.yaw; if (hs > 8) { const vy = Math.atan2(-this.vel.x, -this.vel.z); ty = this.yaw + wrapPi(vy - this.yaw) * smooth(10, 38, hs) * 0.55; }
+      let ty = this.yaw; if (hs > 8) { const vy = Math.atan2(-this.vel.x, -this.vel.z); const dv = wrapPi(vy - this.yaw); ty = this.yaw + Math.max(-0.8, Math.min(0.8, dv)) * smooth(10, 38, hs) * 0.55 * smooth(2.2, 1.1, Math.abs(dv)); } // in a hard break the nose leaves the flight path: stay behind the tail instead of swinging side-on
       if (!c.inited) { c.yaw = ty; c.lag.set(0, 0, 0); c.aimBlend = 0; }
       c.yaw += wrapPi(ty - c.yaw) * (1 - Math.exp(-3.4 * dt));
       c.aimBlend = damp(c.aimBlend, this.gunner ? 1 : 0, 8, dt);

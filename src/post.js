@@ -30,7 +30,7 @@ export const post = {
         float skyM = step(0.99999, d); gl_FragColor = vec4(c * smoothstep(1.2, 5.0, l) * w * (0.25 + 0.75 * skyM), 1.0); }`,
       { tScene: { value: null }, tDepth: { value: null }, uSun: { value: new THREE.Vector2() }, uAspect: { value: 1 } });
     this.mShaftBlur = pass(`uniform sampler2D tIn; uniform vec2 uSun; uniform float uLen;
-      void main(){ vec2 d = (uSun - vUv) * uLen / 8.0; vec3 a = vec3(0.0); vec2 p = vUv; float w = 1.0, tw = 0.0;
+      void main(){ vec2 d = (uSun - vUv) * uLen / 8.0; vec3 a = vec3(0.0); float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))); vec2 p = vUv + d * (jit - 0.5); float w = 1.0, tw = 0.0; /* jittered start hides the 8-step banding that showed as streaks on far slopes */
         for (int i = 0; i < 8; i++) { a += texture2D(tIn, p).rgb * w; tw += w; p += d; w *= 0.93; } gl_FragColor = vec4(a / tw, 1.0); }`,
       { tIn: { value: null }, uSun: { value: new THREE.Vector2() }, uLen: { value: 0.3 } });
     this.mPre = pass(`uniform sampler2D tIn; uniform vec2 uTexel;
