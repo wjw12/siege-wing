@@ -1,6 +1,7 @@
 // Siege Wing — the castle: procedural masonry, destructible towers / wall sections / gate, colliders, mounts
 import * as THREE from 'three';
 import { G, V3, patchMaterial, rnd, rndS, clamp, mulberry32, TAU, lerp } from './core.js';
+import { assets } from './assets.js';
 import { terrain, L } from './terrain.js';
 import { world } from './world.js';
 import { GB } from './geo.js';
@@ -18,6 +19,7 @@ function stoneMaterial() {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vSU = uv; vSN = normalize(mat3(modelMatrix) * normal); vSW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
       varying vec2 vSU; varying vec3 vSN; varying vec3 vSW; uniform sampler2D uNoise; uniform float uNight; uniform float uTime; vec3 swNP; float swR;
+      uniform sampler2DArray uCA; uniform sampler2DArray uCB; uniform vec3 uCMean[3];
       float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`)
       .replace('#include <color_fragment>', /* glsl */`#include <color_fragment>
       {
@@ -43,14 +45,19 @@ function stoneMaterial() {
           col *= 1.0 - 0.38 * streak * (top ? 0.3 : 1.0);
           col = mix(col, col * vec3(0.62, 0.72, 0.5), smoothstep(0.5, 0.75, n2) * 0.35);       // lichen
           col *= 0.75 + 0.5 * n1;
-          swNP = (top ? vec3(0.0) : vec3(0.0, (1.0 - mort) * (f.y < 0.5 ? 1.0 : -1.0), 0.0)) * 0.6 * det;
-          swR = mix(0.97, 0.86, mort);
+          // photoscanned masonry over the procedural coursing: dressed ashlar with patches of older rubble stonework
+          { vec2 t0 = uvm / 3.3, t1 = uvm / 3.7 + 0.37; float rub = smoothstep(0.52, 0.7, n1 * 0.6 + n2 * 0.5) * (top ? 0.3 : 1.0);
+            vec4 A = mix(texture(uCA, vec3(t0, 0.0)), texture(uCA, vec3(t1, 1.0)), rub), B = mix(texture(uCB, vec3(t0, 0.0)), texture(uCB, vec3(t1, 1.0)), rub);
+            vec3 mean = mix(uCMean[0], uCMean[1], rub); vec3 ph = A.rgb / mean * vec3(0.40, 0.365, 0.31) * mix(1.0, B.a, 0.7);
+            col = ph * clamp(col / max(mix(vec3(0.15, 0.135, 0.115), stone, mort), vec3(1e-3)), 0.0, 1.6);
+            vec2 nt = B.rg * 2.0 - 1.0; vec3 T = top ? vec3(1.0, 0.0, 0.0) : normalize(cross(vec3(0.0, 1.0, 0.0), vSN) + 1e-4); vec3 Bt = top ? vec3(0.0, 0.0, -1.0) : vec3(0.0, 1.0, 0.0);
+            swNP = (T * nt.x + Bt * nt.y) * 0.9; swR = 0.72 + 0.28 * B.b; }
         } else if (kind < 1.5) { // slate
           float row = floor(uvm.y / 0.42); float bx = uvm.x / 0.5 + fract(row * 0.5); vec2 f = vec2(fract(bx), fract(uvm.y / 0.42));
           float hsh = h21(vec2(floor(bx), row));
           col = mix(vec3(0.10, 0.11, 0.135), vec3(0.19, 0.20, 0.24), hsh) * (0.75 + 0.5 * n3);
-          col *= mix(1.0, smoothstep(0.0, 0.07, f.x) * (0.55 + 0.45 * smoothstep(0.0, 0.5, f.y)), det);
-          swR = 0.62;
+          { vec2 t0 = uvm / 2.6; vec4 A = texture(uCA, vec3(t0, 2.0)), B = texture(uCB, vec3(t0, 2.0)); col = A.rgb / uCMean[2] * vec3(0.135, 0.145, 0.175) * (0.8 + 0.4 * n3) * mix(1.0, B.a, 0.7);
+            vec2 nt = B.rg * 2.0 - 1.0; swNP = vec3(nt.x, 0.0, -nt.y) * 0.6; swR = 0.5 + 0.3 * B.b; }
         } else { // wood planks
           float bx = uvm.x / 0.32; float hsh = h21(vec2(floor(bx), 1.0));
           col = mix(vec3(0.13, 0.085, 0.05), vec3(0.22, 0.15, 0.09), hsh) * (0.7 + 0.6 * texture2D(uNoise, vec2(uvm.x * 2.0, uvm.y * 0.08)).r);
@@ -65,7 +72,7 @@ function stoneMaterial() {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       { float isWin = step(max(vColor.r, max(vColor.g, vColor.b)), 0.1); if (isWin > 0.5) { float id = h21(floor(vSW.xz * 0.35) + floor(vSW.y * 0.2) * 17.0);
           float fl = 0.8 + 0.2 * sin(uTime * (5.0 + id * 9.0) + id * 40.0); totalEmissiveRadiance += vec3(1.0, 0.47, 0.13) * step(0.34, id) * fl * smoothstep(0.12, 0.75, uNight) * 3.2; } }`);
-  });
+  }, { uCA: { value: assets.masonry.A }, uCB: { value: assets.masonry.B }, uCMean: { value: assets.masonry.mean } });
 }
 
 export const castle = {
