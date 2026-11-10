@@ -32,6 +32,7 @@ export const fx = {
         void main(){
           vUv = position.xy; vCol = iCol; vMisc = iMisc;
           float c = cos(iMisc.x), s = sin(iMisc.x); vec2 p = vec2(position.x * c - position.y * s, position.x * s + position.y * c) * iPos.w;
+          float tyv = floor(iMisc.z + 0.5); if (tyv > 0.5 && tyv < 1.5) p = vec2(position.x * 0.82, position.y * 1.5 + 0.42) * iPos.w; // flames stand upright and tall instead of tumbling as round blobs
           vec4 mv = viewMatrix * vec4(iPos.xyz, 1.0);
           float ty = floor(iMisc.z + 0.5);
           if (ty > 3.5 && ty < 4.5) { // ground ring: lie flat in world space
@@ -70,8 +71,9 @@ export const fx = {
             col += vec3(1.0, 0.36, 0.07) * em * 0.5 * pow(1.0 - age, 3.0) * (0.4 + n);
             col = mix(col, fog.rgb, fog.a);
           } else if (ty < 1.5) { // fire
-            float dens = smoothstep(1.0, 0.1, r + (n - 0.5) * 1.3) * smoothstep(1.0, 0.6, r);
-            float n2 = texture2D(uNoise, nuv * 4.3 - vec2(0.0, age * 0.9)).b; dens *= smoothstep(0.25, 0.6, n2 + (1.0 - r) * 0.6);
+            float rf = length(vec2(vUv.x * (1.0 + 1.25 * smoothstep(-0.3, 1.0, vUv.y)), vUv.y)); // teardrop: wide at the base, licking to a point
+            float dens = smoothstep(1.0, 0.1, rf + (n - 0.5) * 1.3) * smoothstep(1.0, 0.6, rf);
+            float n2 = texture2D(uNoise, nuv * vec2(4.3, 2.6) - vec2(0.0, age * 1.6 + seed * 3.0)).b; dens *= smoothstep(0.25, 0.6, n2 + (1.0 - r) * 0.6);
             float heat = dens * (1.0 - age) * (0.55 + 0.9 * n);
             vec3 fire = mix(vec3(1.0, 0.12, 0.0), vec3(1.0, 0.55, 0.12), smoothstep(0.15, 0.55, heat)); fire = mix(fire, vec3(1.0, 0.92, 0.7), smoothstep(0.6, 0.95, heat));
             float soot = smoothstep(0.45, 1.0, age);
@@ -185,12 +187,12 @@ export const fx = {
   // scale 1 = rocket, 2+ = big
   explosion(p, scale = 1, o = {}) {
     const g = terrain.height(p.x, p.z); const nearGround = p.y - g < 5 * scale; const y = Math.max(p.y, g + 0.3);
-    this.spawn(T_FLASH, p.x, y + 1, p.z, 0, 0, 0, 9 * scale, 9 * scale, 0.12, 1.0, 0.8, 0.45, 1, 1, 0, 0);
+    this.spawn(T_FLASH, p.x, y + 1, p.z, 0, 0, 0, 12 * scale, 12 * scale, 0.15, 1.0, 0.82, 0.5, 1, 1, 0, 0);
     this.spawn(T_FLASH, p.x, y + 1, p.z, 0, 0, 0, 26 * scale, 26 * scale, 0.22, 1.0, 0.55, 0.2, 0.16, 0.3, 0, 0);
     this.light(_v.set(p.x, y + 2.5 * scale, p.z), 0xff9a40, 260 * scale, 80 * scale, 0.35);
-    const nf = Math.round(7 * Math.sqrt(scale));
+    const nf = Math.round(11 * Math.sqrt(scale));
     for (let i = 0; i < nf; i++) { const a = rnd(TAU), e = rnd(0.1, 1.5), sp = rnd(3, 10) * scale; this.spawn(T_FIRE, p.x + rndS(scale), y + rnd(scale), p.z + rndS(scale), Math.cos(a) * Math.cos(e) * sp, Math.sin(e) * sp + 2, Math.sin(a) * Math.cos(e) * sp, rnd(1.4, 2.4) * scale, rnd(3.2, 4.6) * scale, rnd(0.45, 0.9) * (0.7 + 0.3 * scale), 1, 1, 1, 1, 0.6, 2.2, -2); }
-    const ns = Math.round(9 * Math.sqrt(scale));
+    const ns = Math.round(12 * Math.sqrt(scale));
     for (let i = 0; i < ns; i++) { const a = rnd(TAU), sp = rnd(1, 5) * scale; const c = rnd(0.03, 0.12); this.spawn(T_SMOKE, p.x + rndS(1.5 * scale), y + rnd(2 * scale), p.z + rndS(1.5 * scale), Math.cos(a) * sp, rnd(3, 8) * Math.sqrt(scale), Math.sin(a) * sp, rnd(1.6, 2.6) * scale, rnd(5, 8) * scale, rnd(3.5, 7) * (0.8 + 0.2 * scale), c, c, c, rnd(0.55, 0.8), 1.2, 0.9, -1.1); }
     if (nearGround) {
       const nd = Math.round(12 * Math.sqrt(scale));
@@ -199,7 +201,7 @@ export const fx = {
       this.spawn(T_RING, p.x, g + 0.25, p.z, 0, 0, 0, 5 * scale, 22 * scale, 0.5, 0.85, 0.8, 0.7, 0.5, 0, 0, 0);
       if (o.scorch !== false) terrain.scorch(p.x, p.z, 5.5 * scale * rnd(0.9, 1.15), 1);
     }
-    const nsp = Math.round(18 * scale);
+    const nsp = Math.round(28 * scale);
     for (let i = 0; i < nsp; i++) { const a = rnd(TAU), e = rnd(0.1, 1.5), sp = rnd(12, 34) * Math.sqrt(scale); this.streak(p.x, y + 0.5, p.z, Math.cos(a) * Math.cos(e) * sp, Math.sin(e) * sp, Math.sin(a) * Math.cos(e) * sp, rnd(0.5, 1.4), 0.06, 0.05, 3.2, 1.6, 0.45, 15, 1); }
     this.debrisBurst(_v.set(p.x, y, p.z), o.debris !== undefined ? o.debris : Math.round(6 * scale), 0.3 * Math.sqrt(scale), o.debrisColor || 0x3b2e20, null, 15 * Math.sqrt(scale));
     if (o.fire) this.emitters.push({ x: p.x, y: g + 0.4, z: p.z, life: o.fireLife || 30, size: 1.3 * scale, rate: 14, t: 0, smoke: 1 });

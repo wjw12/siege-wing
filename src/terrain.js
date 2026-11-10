@@ -248,7 +248,7 @@ export const terrain = {
           float burn = sc.r * (0.75 + 0.5 * n3);
           col = mix(col, vec3(0.012, 0.010, 0.009) * (0.5 + g.h), clamp(burn, 0.0, 0.94));
           col = mix(col, vec3(0.2, 0.19, 0.18) * n4, clamp(burn - 0.7, 0.0, 1.0) * 0.6 * n4); // ash flecks
-          swEmis = vec3(1.0, 0.28, 0.04) * sc.g * sc.g * (0.4 + 2.2 * smoothstep(0.45, 0.8, n4 * 0.6 + n3 * 0.5)) * 5.0;
+          swEmis = vec3(1.0, 0.28, 0.04) * sc.g * sc.g * (0.06 + 2.6 * smoothstep(0.52, 0.86, n4 * 0.6 + n3 * 0.5) * (0.4 + 0.6 * g.h)) * 3.0; // scattered embers in the cracks, not a glowing disc
           swNrmP = g.n * 1.15;
           diffuseColor.rgb = col;
         }`)
