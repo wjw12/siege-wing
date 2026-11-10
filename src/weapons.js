@@ -159,7 +159,7 @@ export const weapons = {
     const dir = heli.gunner ? heli.aimDir : _d.copy(heli.fwd); const eye = heli.pos; let best = null, bestA = 4.2 * DEG;
     const cur = L_.target;
     for (const t of this.targets()) {
-      _v.set(t.x - eye.x, t.y - eye.y, t.z - eye.z); const d = _v.length(); if (d > 1500 || d < 40) continue; _v.multiplyScalar(1 / d);
+      _v.set(t.x - eye.x, t.y - eye.y, t.z - eye.z); const d = _v.length(); if (d > 700 || d < 40) continue; _v.multiplyScalar(1 / d);   // lock range sits inside the bombards' reach: no free kills from a kilometre out
       const ang = Math.acos(clamp(_v.dot(dir), -1, 1)); const lim = (cur && cur.ref === t.ref) ? 5.5 * DEG : 4.2 * DEG;
       if (ang < lim && ang < bestA + (cur && cur.ref === t.ref ? 2 * DEG : 0)) { best = t; bestA = ang; if (cur && cur.ref === t.ref) { bestA = -1; } }
     }

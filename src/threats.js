@@ -61,7 +61,7 @@ export const threats = {
   },
   reset() {
     for (const e of this.engines) { e.alive = true; e.hp = e.maxHp; e.obj.visible = true; e.state = 'idle'; e.t = rnd(3, 9); e.spotted = false; if (e.kind === 'treb') { e.armA = -0.873; e.t = 6 + rnd(8); } }
-    this.na = 0; this.bolts.length = 0; this.shells.length = 0; this.boulders.length = 0; this.phase = 1; this.aimWarn = 0; this.bandCenter = 200; this.bandHalf = 100;
+    this.na = 0; this.bolts.length = 0; this.shells.length = 0; this.boulders.length = 0; this.phase = 1; this.loiterT = 0; this.aimWarn = 0; this.bandCenter = 200; this.bandHalf = 100;
     for (const b of this.boltPool) b.visible = false; for (const b of this.boulderPool) b.visible = false;
     for (const p of castle.firePots) { if (p.emitter) { p.emitter.on = false; p.emitter.permanent = false; p.emitter.life = 0; p.emitter = null; } p.lit = false; }
     if (this.pavises) { this.scene.remove(...this.pavises); this.pavises = null; }
@@ -98,13 +98,19 @@ export const threats = {
   update(dt) {
     const fly = heli.state === 'fly'; const hp = heli.pos, hv = heli.vel;
     const night = G.U.uNight.value;
+    // loiter clock: hovering high and slow (out of arrow reach) for more than a few seconds draws the castle's bombards even in phase 1
+    // It ramps instead of switching: the slower you fly the faster it fills (nothing above 24 m/s), and it drains when you move on.
+    { const hs = Math.hypot(hv.x, hv.z); const rate = fly && hp.y - 24 > 120 ? clamp(1 - hs / 24, 0, 1) : 0; const was = this.loiterT || 0;
+      this.loiterT = clamp(was + (rate > 0 ? rate * dt : -1.5 * dt), 0, 14); this.loiterK = smooth(4, 10, this.loiterT);
+      if (was < 4 && this.loiterT >= 4 && this.phase === 1) G.events.dispatchEvent(new CustomEvent('subtitle', { detail: { text: 'They are ranging us. Keep moving.', speaker: 'gunner', dur: 3 } }));
+      if (this.phase === 1 && this.loiterK > 0) this.bandCenter = damp(this.bandCenter, clamp(hp.y - 24, 60, 420), 0.5, dt); } // in phase 1 the guns walk onto whatever height you park at
     // ================= archer volleys =================
     this.volleyWarn = Math.max(0, this.volleyWarn - dt);
     for (const f of crowd.forms) {
       if (f.kind !== 'archers') continue;
       if (f.routed || f.panicT > 0 || f.alive < 4 || !fly) { f.volleying = false; f.volleyT = Math.max(f.volleyT, 1.5); continue; }
       const dx = hp.x - f.cx, dz = hp.z - f.cz; const dh = Math.hypot(dx, dz); const alt = hp.y - f.cy;
-      const reach = f.onWalls ? 250 : 270; const inRange = dh < reach + f.radius && alt < 128 && alt > -30;
+      const reach = f.onWalls ? 250 : 270; const inRange = dh < reach + f.radius && alt < 128 + 160 * (this.loiterK || 0) && alt > -30; // a helicopter parked high and slow gets a massed high-angle volley
       if (f.volleying) {
         f.volleyClock += dt;
         if (!f.loosed && f.volleyClock >= 2.4) { f.loosed = true; this._loose(f); }
@@ -156,11 +162,11 @@ export const threats = {
       } else if (e.kind === 'bombard') {
         e.t -= dt;
         const alt = hp.y - 24; const inBand = Math.abs(alt - this.bandCenter) < this.bandHalf;
-        const active = this.phase >= 2 && manned && fly && dh < e.range && inBand && dy > 10;
+        const active = (this.phase >= 2 || this.loiterK > 0.5) && manned && fly && dh < e.range && inBand && dy > 10; // in phase 1 the guns only range a helicopter that parks high over the field
         if (e.pitchN) e.pitchN.rotation.x = damp(e.pitchN.rotation.x, -clamp(Math.atan2(dy, dh), 0.15, 1.2), 2, dt);
         if (manned && dh < 900) e.obj.rotation.y += wrapPi(Math.atan2(dx, dz) - e.obj.rotation.y) * Math.min(1, dt * 0.8);
         if (e.t < 3 && active) for (const i of e.crew) crowd.crew[i] = 1;
-        if (active && e.t <= 0 && G.time - (this.lastBombard || -99) > 3.6) {
+        if (active && e.t <= 0 && G.time - (this.lastBombard || -99) > (this.phase >= 2 ? 3.6 : 9)) { /* phase 1: harassing fire only, well under half the phase 2 rate */
           this.lastBombard = G.time; e.t = e.reload + rnd(-1, 2); e.spotted = true;
           const speed = 230; const tof = dist / speed; const err = 12 + dist * 0.028;
           const tx = hp.x + hv.x * tof + rndS(err), ty = hp.y + hv.y * tof + rndS(err * 0.6), tz = hp.z + hv.z * tof + rndS(err);
