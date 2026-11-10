@@ -130,7 +130,7 @@ Keys can be rebound in Settings. The "Battlefield" preset moves yaw to the mouse
 |---|---|
 | **Browser** | Desktop Chrome or Edge (WebGL2 and Ogg Vorbis audio) |
 | **Input** | Mouse and keyboard |
-| **Graphics** | A dedicated GPU is recommended. Quality presets (High / Medium / Low) are in Settings. |
+| **Graphics** | A dedicated GPU is recommended. Quality presets (High / Medium / Low) are in Settings. An FPS counter sits in the top-right corner (toggle in Settings); if a run stays under 30 FPS the game suggests a lower preset, and the pause menu switches it in one click. |
 | **Download** | About 100 MB on first load |
 
 <p align="center">

@@ -20,10 +20,12 @@ import { weapons } from './weapons.js';
 import { mission } from './mission.js';
 import { hud } from './hud.js';
 import { ui } from './ui.js';
+import { perf } from './perf.js';
 
 dev.init();
 installShaderPatches();
-const QUALITY = { high: { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 }, medium: { px: 1.0, maxW: 1600, shadow: 2048, tex: 1024, aniso: 8, ss: 1 }, low: { px: 0.8, maxW: 1280, shadow: 1024, tex: 512, aniso: 4, ss: 1 } }[Q.get('q') || settings.quality] || { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 };
+const QUALITIES = { high: { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 }, medium: { px: 1.0, maxW: 1600, shadow: 2048, tex: 1024, aniso: 8, ss: 1 }, low: { px: 0.8, maxW: 1280, shadow: 1024, tex: 512, aniso: 4, ss: 1 } };
+const QUALITY = { ...(QUALITIES[Q.get('q') || settings.quality] || QUALITIES.high) };
 if (Q.has('ss')) QUALITY.ss = +Q.get('ss');
 const canvas = document.getElementById('c');
 const renderer = G.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: false });
@@ -42,6 +44,13 @@ function ssGovern(rdt, active) { // called once per rendered frame with the real
   if (ssGov.n >= 150) { const avg = ssGov.acc / ssGov.n; ssGov.n = 0; ssGov.acc = 0; if (avg > 1 / 48) { ssCur = ssCur > 1.16 ? 1.15 : 1; resize(); dev.log('SS ' + ssCur + ' avgMs=' + (avg * 1000).toFixed(1)); } }
 }
 addEventListener('resize', resize); resize();
+// switch graphics quality mid-session: resolution, supersampling and shadow-map size change live; texture size and forest range need a reload
+function applyQuality(name) {
+  const q = QUALITIES[name]; if (!q) return;
+  Object.assign(QUALITY, { px: q.px, maxW: q.maxW, shadow: q.shadow }); if (!Q.has('ss')) QUALITY.ss = q.ss; ssCur = QUALITY.ss; ssGov.n = 0; ssGov.acc = 0;
+  for (const l of [sky.sun, sky.sun2]) if (l) { l.shadow.mapSize.set(q.shadow, q.shadow); if (l.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null; } }
+  resize(); dev.log('QUALITY ' + name);
+}
 input.init(canvas);
 
 let state = 'loading', paused = false, T = 0, playT = 0, menuT = 0, endShown = false, fadeT = 0, pendingStart = null, slowmo = 1;
@@ -64,7 +73,7 @@ async function boot() {
   crowd.build(scene); threats.build(scene); weapons.init(scene); mission.init();
   heli.bindModel(assets.heli.scene); navLights();
   hud.init(); hud.bindMFD();
-  ui.init({ start: startGame, resume, quit, events: G.events });
+  ui.init({ start: startGame, resume, quit, events: G.events }); perf.init(applyQuality);
   ui.loading(0.9, 'PREPARING SHADERS'); await tick();
   // Initialize IBL before compiling: environment maps change shader variants.
   camera.position.set(500, 80, 120); camera.lookAt(-140, 62, 0);
@@ -236,7 +245,7 @@ let last = performance.now();
 const focus = new V3(), camDir = new V3(), listenerR = new V3(); const nearFocus = new V3(), _nf = new V3();
 function frame(now) {
   requestAnimationFrame(frame); const fT0 = performance.now();
-  const rdt = Math.min((now - last) / 1000, 0.05); last = now;
+  const rawDt = (now - last) / 1000, rdt = Math.min(rawDt, 0.05); last = now;
   const playing = state === 'play' && !paused;
   let dt = playing || state === 'menu' ? rdt * slowmo : 0;
   T += dt; G.time = T; G.dt = dt; G.U.uTime.value = T; renderer.info.reset();
@@ -303,6 +312,7 @@ function frame(now) {
   pp.vignette = state === 'menu' ? 0.5 : heli.gunner ? 0.5 : 0.32;
   if (pendingFade > 0 && --pendingFade === 0) ui.fade(false);
   ssGovern(rdt, state === 'play' && !paused && playT > 6);
+  perf.frame(rawDt, state === 'play' && !paused && playT > 8 && heli.state === 'fly' && mission.state === 'play', rdt);
   { const a0 = performance.now(); post.render(scene, camera, sky.sunDir, sky.sunVisible); const a1 = performance.now(); if (!Q.has('nohuddraw')) hud.draw(rdt, paused ? 'paused' : state); if (dev.on) { const P = dev.prof = dev.prof || {}; if (!(P.render > a1 - a0)) P.render = a1 - a0; const d = performance.now() - a1; if (!(P.hud > d)) P.hud = d; } }
   input.endFrame();
   if (dev.on) { const P = dev.prof = dev.prof || {}; const d = performance.now() - fT0; if (!(P.frame > d)) P.frame = d; }

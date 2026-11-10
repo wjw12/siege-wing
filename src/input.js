@@ -10,7 +10,7 @@ export const PRESETS = {
   battlefield: { name: 'Battlefield (mouse = pitch + yaw)', mouseX: 'yaw', keys: { collUp: 'KeyW', collDown: 'KeyS', yawL: 'KeyQ', yawR: 'KeyE', rollL: 'KeyA', rollR: 'KeyD', fire: 'Mouse0', gunner: 'Mouse2', wpn1: 'Digit1', wpn2: 'Digit2', wpn3: 'Digit3', flares: 'KeyX', view: 'KeyC', freelook: 'AltLeft', restart: 'KeyR', pause: 'KeyP' } },
 };
 const LS = 'siegewing.settings.v2';
-export const settings = Object.assign({ preset: 'delta', keys: { ...PRESETS.delta.keys }, mouseX: 'roll', invertY: false, sens: 1.0, aimSens: 1.0, keySens: 1.0, hideHelp: false, subtitles: true, mode: 'assault', volume: 0.8, musicVolume: 0.7, voiceVolume: 1.0, quality: 'high', seenHelp: false }, load());
+export const settings = Object.assign({ preset: 'delta', keys: { ...PRESETS.delta.keys }, mouseX: 'roll', invertY: false, sens: 1.0, aimSens: 1.0, keySens: 1.0, hideHelp: false, subtitles: true, mode: 'assault', volume: 0.8, musicVolume: 0.7, voiceVolume: 1.0, quality: 'high', showFps: true, seenHelp: false }, load());
 function load() { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } }
 export function saveSettings() { try { localStorage.setItem(LS, JSON.stringify(settings)); } catch (e) { } }
 export function applyPreset(name) { settings.preset = name; settings.keys = { ...PRESETS[name].keys }; settings.mouseX = PRESETS[name].mouseX; saveSettings(); }

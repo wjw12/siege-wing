@@ -1,6 +1,7 @@
 // Siege Wing — DOM menus: loading, title, settings/rebinding, pause, end screen
 import { settings, saveSettings, applyPreset, PRESETS, ACTIONS, keyLabel, input } from './input.js';
 import { audio } from './audio.js';
+import { perf } from './perf.js';
 
 const $ = id => document.getElementById(id);
 const screens = ['loading', 'menu', 'settings', 'pause', 'end', 'resume', 'help'];
@@ -53,12 +54,13 @@ export const ui = {
     $('optVol').addEventListener('input', e => { settings.volume = +e.target.value; saveSettings(); audio.setVolume(settings.volume, 1, 1); });
     $('optMus').addEventListener('input', e => { settings.musicVolume = +e.target.value; saveSettings(); audio.setVolume(settings.volume, 1, 1, settings.musicVolume, settings.voiceVolume); });
     $('optVox').addEventListener('input', e => { settings.voiceVolume = +e.target.value; saveSettings(); audio.setVolume(settings.volume, 1, 1, settings.musicVolume, settings.voiceVolume); });
-    $('optQ').addEventListener('change', e => { settings.quality = e.target.value; saveSettings(); });
+    $('optQ').addEventListener('change', e => perf.apply(e.target.value));
+    $('optFps').addEventListener('change', e => { settings.showFps = e.target.checked; saveSettings(); perf.sync(); });
     this.refresh();
   },
   refresh() {
     document.querySelectorAll('.card').forEach(c => c.classList.toggle('sel', c.dataset.mode === settings.mode));
-    $('optSens').value = settings.sens; $('optSensV').textContent = (+settings.sens).toFixed(2) + '×'; $('optAim').value = settings.aimSens; $('optAimV').textContent = (+settings.aimSens).toFixed(2) + '×'; $('optKey').value = settings.keySens; $('optKeyV').textContent = (+settings.keySens).toFixed(2) + '×'; $('optHelp').checked = !settings.hideHelp; $('optSubs').checked = settings.subtitles !== false; $('helpSkip').checked = !!settings.hideHelp; $('optInv').checked = settings.invertY; $('optVol').value = settings.volume; $('optMus').value = settings.musicVolume; $('optVox').value = settings.voiceVolume; $('optQ').value = settings.quality;
+    $('optSens').value = settings.sens; $('optSensV').textContent = (+settings.sens).toFixed(2) + '×'; $('optAim').value = settings.aimSens; $('optAimV').textContent = (+settings.aimSens).toFixed(2) + '×'; $('optKey').value = settings.keySens; $('optKeyV').textContent = (+settings.keySens).toFixed(2) + '×'; $('optHelp').checked = !settings.hideHelp; $('optSubs').checked = settings.subtitles !== false; $('helpSkip').checked = !!settings.hideHelp; $('optInv').checked = settings.invertY; $('optVol').value = settings.volume; $('optMus').value = settings.musicVolume; $('optVox').value = settings.voiceVolume; $('optQ').value = settings.quality; $('optFps').checked = settings.showFps !== false;
     const k = settings.keys;
     const pr = $('presets'); pr.innerHTML = '';
     for (const [id, p] of Object.entries(PRESETS)) { const b = document.createElement('button'); b.textContent = p.name; b.className = settings.preset === id ? 'sel' : ''; b.onclick = () => { applyPreset(id); audio.play('uiClick'); this.refresh(); }; pr.appendChild(b); }
@@ -110,7 +112,7 @@ export const ui = {
     this.show('help');
   },
   clearSubs() { for (const id of ['subMain', 'subEnemy']) $(id).classList.remove('on'); },
-  showPause(objective) { $('pauseObj').textContent = objective; this.show('pause'); },
+  showPause(objective) { $('pauseObj').textContent = objective; perf.note(); this.show('pause'); },
   showEnd(won, cause, score, st) {
     const t = $('endTitle'); t.textContent = won ? 'THE SIEGE IS BROKEN' : 'HELICOPTER LOST'; t.className = won ? 'win' : 'loss';
     $('endSub').textContent = won ? 'The warlord is dead and his banner is down.' : `Cause: ${cause || 'unknown'}. Reached phase ${Math.max(1, st.phase)} of 3.`;

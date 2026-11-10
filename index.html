@@ -89,6 +89,13 @@ input[type=range]{accent-color:var(--amber);width:210px}select{font:inherit;back
 .sline{opacity:0;transition:opacity .22s;max-width:100%;text-align:center;font:500 17px/1.38 "Segoe UI","Helvetica Neue",Arial,sans-serif;color:#f1f5e8;padding:6px 16px 7px;background:linear-gradient(90deg,rgba(6,9,7,0),rgba(6,9,7,.62) 12%,rgba(6,9,7,.62) 88%,rgba(6,9,7,0));text-shadow:0 1px 2px rgba(0,0,0,.9);letter-spacing:.01em}
 .sline.on{opacity:1}.sline b{font:700 11px Consolas,monospace;letter-spacing:.18em;margin-right:10px;vertical-align:1px}
 .sline.enemy{font-style:italic;font-size:15px;color:#e9d9c0}
+#fps{position:fixed;top:12px;right:16px;z-index:6;pointer-events:none;display:none;font:700 13px Consolas,"SF Mono",ui-monospace,monospace;letter-spacing:.08em;color:rgba(226,242,214,.8);text-shadow:0 1px 3px rgba(0,0,0,.85)}
+#fps.on{display:block}#fps.good{color:rgba(157,255,138,.85)}#fps.ok{color:var(--amber)}#fps.bad{color:var(--red)}
+#perfTip{position:fixed;top:34px;right:16px;z-index:6;pointer-events:none;opacity:0;transition:opacity .3s;font:700 11px "Segoe UI",sans-serif;letter-spacing:.14em;color:var(--fg);background:rgba(8,12,10,.62);border-left:2px solid var(--amber);padding:6px 10px;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+#perfTip.on{opacity:1}#perfTip b{color:var(--amber)}
+#perfNote{display:none;text-align:left;margin:4px 0 16px;padding:12px 14px;border:1px solid rgba(255,176,46,.45);background:rgba(255,176,46,.08);font-size:13px;line-height:1.55;color:var(--dim);max-width:460px}
+#perfNote.on{display:block}#perfNote b{color:var(--fg)}#perfNote .eye{color:var(--amber);font:700 10.5px "Segoe UI",sans-serif;letter-spacing:.26em;margin-bottom:6px}
+#perfNote .row{margin-top:10px}#perfNote button{padding:8px 14px;font-size:11.5px}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:20;transition:opacity .25s}
 </style>
 </head><body><canvas id="c"></canvas>
@@ -122,11 +129,13 @@ input[type=range]{accent-color:var(--amber);width:210px}select{font:inherit;back
   <div class="opt"><span>Master volume</span><input type="range" id="optVol" min="0" max="1" step="0.02"></div>
   <div class="opt"><span>Music</span><input type="range" id="optMus" min="0" max="1" step="0.02"></div>
   <div class="opt"><span>Voice</span><input type="range" id="optVox" min="0" max="1" step="0.02"></div>
-  <div class="opt"><span>Graphics quality (applies on reload)</span><select id="optQ"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+  <div class="opt"><span>Graphics quality (texture detail and forest range apply on reload)</span><select id="optQ"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+  <div class="opt"><span>Show FPS counter</span><input type="checkbox" id="optFps"></div>
   <div class="row" style="margin-top:22px"><button id="btnBack">Back</button></div>
 </div></div>
 <div id="pause" class="screen"><div class="panel" style="text-align:center">
   <h2>PAUSED</h2><p class="sub" id="pauseObj"></p>
+  <div id="perfNote"><div class="eye">LOW FRAME RATE</div><div id="perfText"></div><div class="row"><button class="primary" id="perfApply"></button><button id="perfDismiss"></button></div></div>
   <div class="row" style="justify-content:center;flex-direction:column"><button class="primary" id="btnResume">Resume</button><button id="btnRestart">Restart run</button><button id="btnPHelp">How to play</button><button id="btnPSettings">Controls &amp; settings</button><button id="btnQuit">Back to home</button></div>
 </div></div>
 <div id="end" class="screen"><div class="panel">
@@ -168,6 +177,7 @@ input[type=range]{accent-color:var(--amber);width:210px}select{font:inherit;back
 </div></div>
 <div id="resume" class="screen"><b>CLICK TO FLY</b><span>Mouse is captured while flying · Esc to pause</span></div>
 <div id="subs"><div class="sline" id="subMain"></div><div class="sline enemy" id="subEnemy"></div></div>
+<div id="fps"></div><div id="perfTip"></div>
 <div id="fade"></div>
 <script>if(/[?&](shots|dev)/.test(location.search)){addEventListener('error',e=>fetch('/__log',{method:'POST',body:'EARLY '+e.message+' @'+(e.filename||'').split('/').pop()+':'+e.lineno}));}</script>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
