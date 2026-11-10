@@ -1,0 +1,25 @@
+# secrets
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc
+
+# build / dev output (release zips are attached to GitHub Releases)
+release/
+shots/
+
+# large source assets: shipped as SiegeWing-source-assets zip on GitHub Releases
+assets/audio/_src/
+tools/blender/preview/
+
+# duplicate checkpoints of tools/blender
+tools/blender_ckpt/
+tools/blender_ext/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.Zone.Identifier

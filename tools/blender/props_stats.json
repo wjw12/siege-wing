@@ -1,0 +1,638 @@
+{
+ "Ballista": {
+  "tris": 2076,
+  "bbox_min_blender": [
+   -1.64,
+   -1.5,
+   0.0
+  ],
+  "bbox_max_blender": [
+   1.64,
+   1.91,
+   2.04
+  ],
+  "size_three_xyz": [
+   3.28,
+   2.04,
+   3.41
+  ],
+  "nodes": [
+   "Ballista",
+   "Ballista_Yaw",
+   "Ballista_Pitch",
+   "Ballista_LoadedBolt",
+   "Ballista_Bolt"
+  ],
+  "materials": [
+   "Iron",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Bolt": {
+  "tris": 88,
+  "bbox_min_blender": [
+   -0.09,
+   -0.9,
+   -0.11
+  ],
+  "bbox_max_blender": [
+   0.09,
+   0.9,
+   0.06
+  ],
+  "size_three_xyz": [
+   0.19,
+   0.17,
+   1.8
+  ],
+  "nodes": [
+   "Bolt"
+  ],
+  "materials": [
+   "Iron",
+   "Wood"
+  ]
+ },
+ "Bombard": {
+  "tris": 3888,
+  "bbox_min_blender": [
+   -1.48,
+   -1.62,
+   -0.07
+  ],
+  "bbox_max_blender": [
+   1.77,
+   3.18,
+   1.5
+  ],
+  "size_three_xyz": [
+   3.25,
+   1.56,
+   4.8
+  ],
+  "nodes": [
+   "Bombard",
+   "Bombard_Pitch",
+   "Bombard_Muzzle"
+  ],
+  "materials": [
+   "Cloth",
+   "Iron",
+   "Rope",
+   "Stone",
+   "Wood"
+  ]
+ },
+ "Trebuchet": {
+  "tris": 5100,
+  "bbox_min_blender": [
+   -4.1,
+   -5.2,
+   -0.07
+  ],
+  "bbox_max_blender": [
+   4.1,
+   5.83,
+   10.21
+  ],
+  "size_three_xyz": [
+   8.2,
+   10.28,
+   11.03
+  ],
+  "nodes": [
+   "Trebuchet",
+   "Treb_Arm",
+   "Treb_Sling",
+   "Treb_CW",
+   "Treb_SlingMesh",
+   "Treb_LoadedBoulder"
+  ],
+  "materials": [
+   "Cloth",
+   "Iron",
+   "Rope",
+   "Stone",
+   "Wood"
+  ]
+ },
+ "Boulder": {
+  "tris": 320,
+  "bbox_min_blender": [
+   -0.52,
+   -0.53,
+   -0.49
+  ],
+  "bbox_max_blender": [
+   0.54,
+   0.52,
+   0.55
+  ],
+  "size_three_xyz": [
+   1.06,
+   1.04,
+   1.05
+  ],
+  "nodes": [
+   "Boulder"
+  ],
+  "materials": [
+   "Stone"
+  ]
+ },
+ "Arrow": {
+  "tris": 17,
+  "bbox_min_blender": [
+   -0.05,
+   -0.4,
+   -0.05
+  ],
+  "bbox_max_blender": [
+   0.05,
+   0.4,
+   0.05
+  ],
+  "size_three_xyz": [
+   0.09,
+   0.09,
+   0.8
+  ],
+  "nodes": [
+   "Arrow"
+  ],
+  "materials": [
+   "Wood"
+  ]
+ },
+ "Tent_A": {
+  "tris": 664,
+  "bbox_min_blender": [
+   -2.47,
+   -3.57,
+   -0.06
+  ],
+  "bbox_max_blender": [
+   2.47,
+   3.57,
+   2.32
+  ],
+  "size_three_xyz": [
+   4.94,
+   2.38,
+   7.14
+  ],
+  "nodes": [
+   "Tent_A"
+  ],
+  "materials": [
+   "Cloth",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Tent_B": {
+  "tris": 2022,
+  "bbox_min_blender": [
+   -5.31,
+   -3.89,
+   -0.06
+  ],
+  "bbox_max_blender": [
+   5.31,
+   5.31,
+   6.2
+  ],
+  "size_three_xyz": [
+   10.61,
+   6.26,
+   9.19
+  ],
+  "nodes": [
+   "Tent_B"
+  ],
+  "materials": [
+   "Cloth",
+   "Iron",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Cart": {
+  "tris": 3080,
+  "bbox_min_blender": [
+   -0.98,
+   -3.1,
+   -0.01
+  ],
+  "bbox_max_blender": [
+   0.98,
+   1.34,
+   1.55
+  ],
+  "size_three_xyz": [
+   1.96,
+   1.56,
+   4.44
+  ],
+  "nodes": [
+   "Cart"
+  ],
+  "materials": [
+   "Cloth",
+   "Iron",
+   "Wood"
+  ]
+ },
+ "Crates": {
+  "tris": 1420,
+  "bbox_min_blender": [
+   -1.08,
+   -1.22,
+   -0.06
+  ],
+  "bbox_max_blender": [
+   1.4,
+   0.5,
+   1.21
+  ],
+  "size_three_xyz": [
+   2.48,
+   1.28,
+   1.72
+  ],
+  "nodes": [
+   "Crates"
+  ],
+  "materials": [
+   "Cloth",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Barrels": {
+  "tris": 2544,
+  "bbox_min_blender": [
+   -1.05,
+   -0.87,
+   -0.01
+  ],
+  "bbox_max_blender": [
+   1.02,
+   0.94,
+   1.4
+  ],
+  "size_three_xyz": [
+   2.07,
+   1.41,
+   1.81
+  ],
+  "nodes": [
+   "Barrels"
+  ],
+  "materials": [
+   "Iron",
+   "Wood"
+  ]
+ },
+ "WeaponRack": {
+  "tris": 2040,
+  "bbox_min_blender": [
+   -1.4,
+   -0.84,
+   -0.01
+  ],
+  "bbox_max_blender": [
+   1.4,
+   0.82,
+   2.57
+  ],
+  "size_three_xyz": [
+   2.8,
+   2.58,
+   1.65
+  ],
+  "nodes": [
+   "WeaponRack"
+  ],
+  "materials": [
+   "Iron",
+   "Paint",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Campfire": {
+  "tris": 1740,
+  "bbox_min_blender": [
+   -1.33,
+   -1.87,
+   -0.06
+  ],
+  "bbox_max_blender": [
+   1.9,
+   1.92,
+   1.23
+  ],
+  "size_three_xyz": [
+   3.23,
+   1.28,
+   3.79
+  ],
+  "nodes": [
+   "Campfire"
+  ],
+  "materials": [
+   "Iron",
+   "Stone",
+   "Wood"
+  ]
+ },
+ "BannerPole": {
+  "tris": 1148,
+  "bbox_min_blender": [
+   -0.82,
+   -0.6,
+   -0.07
+  ],
+  "bbox_max_blender": [
+   0.82,
+   0.6,
+   6.38
+  ],
+  "size_three_xyz": [
+   1.64,
+   6.45,
+   1.2
+  ],
+  "nodes": [
+   "BannerPole",
+   "Banner_Attach"
+  ],
+  "materials": [
+   "Iron",
+   "Rope",
+   "Stone",
+   "Wood"
+  ]
+ },
+ "Pavise": {
+  "tris": 1064,
+  "bbox_min_blender": [
+   -0.42,
+   -0.16,
+   -0.11
+  ],
+  "bbox_max_blender": [
+   0.42,
+   0.8,
+   1.52
+  ],
+  "size_three_xyz": [
+   0.84,
+   1.63,
+   0.95
+  ],
+  "nodes": [
+   "Pavise"
+  ],
+  "materials": [
+   "Iron",
+   "Paint",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "FirePot": {
+  "tris": 1524,
+  "bbox_min_blender": [
+   -0.58,
+   -0.61,
+   -0.01
+  ],
+  "bbox_max_blender": [
+   0.58,
+   0.47,
+   1.23
+  ],
+  "size_three_xyz": [
+   1.17,
+   1.23,
+   1.08
+  ],
+  "nodes": [
+   "FirePot",
+   "FirePot_Top"
+  ],
+  "materials": [
+   "Iron",
+   "Stone"
+  ]
+ },
+ "Palisade": {
+  "tris": 1052,
+  "bbox_min_blender": [
+   -2.0,
+   -0.18,
+   -0.06
+  ],
+  "bbox_max_blender": [
+   2.02,
+   1.91,
+   3.83
+  ],
+  "size_three_xyz": [
+   4.02,
+   3.89,
+   2.09
+  ],
+  "nodes": [
+   "Palisade"
+  ],
+  "materials": [
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Haystack": {
+  "tris": 752,
+  "bbox_min_blender": [
+   -2.1,
+   -2.52,
+   -0.03
+  ],
+  "bbox_max_blender": [
+   2.33,
+   2.15,
+   3.6
+  ],
+  "size_three_xyz": [
+   4.43,
+   3.63,
+   4.67
+  ],
+  "nodes": [
+   "Haystack"
+  ],
+  "materials": [
+   "Iron",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Stakes": {
+  "tris": 892,
+  "bbox_min_blender": [
+   -1.9,
+   -1.09,
+   -0.03
+  ],
+  "bbox_max_blender": [
+   1.9,
+   1.09,
+   1.84
+  ],
+  "size_three_xyz": [
+   3.8,
+   1.88,
+   2.18
+  ],
+  "nodes": [
+   "Stakes"
+  ],
+  "materials": [
+   "Iron",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Pad_Truck": {
+  "tris": 4192,
+  "bbox_min_blender": [
+   -1.4,
+   -3.7,
+   0.0
+  ],
+  "bbox_max_blender": [
+   1.4,
+   3.6,
+   3.3
+  ],
+  "size_three_xyz": [
+   2.81,
+   3.3,
+   7.29
+  ],
+  "nodes": [
+   "Pad_Truck"
+  ],
+  "materials": [
+   "Paint"
+  ]
+ },
+ "Pad_Crates": {
+  "tris": 2248,
+  "bbox_min_blender": [
+   -1.8,
+   -1.67,
+   -0.09
+  ],
+  "bbox_max_blender": [
+   2.09,
+   1.15,
+   1.16
+  ],
+  "size_three_xyz": [
+   3.89,
+   1.25,
+   2.81
+  ],
+  "nodes": [
+   "Pad_Crates"
+  ],
+  "materials": [
+   "Iron",
+   "Paint",
+   "Rope",
+   "Wood"
+  ]
+ },
+ "Windsock": {
+  "tris": 588,
+  "bbox_min_blender": [
+   -0.43,
+   -2.67,
+   0.0
+  ],
+  "bbox_max_blender": [
+   0.43,
+   0.24,
+   6.48
+  ],
+  "size_three_xyz": [
+   0.87,
+   6.48,
+   2.91
+  ],
+  "nodes": [
+   "Windsock",
+   "Windsock_Sock"
+  ],
+  "materials": [
+   "Cloth",
+   "Iron",
+   "Paint"
+  ]
+ },
+ "Pad_Light": {
+  "tris": 296,
+  "bbox_min_blender": [
+   -0.15,
+   -0.14,
+   0.0
+  ],
+  "bbox_max_blender": [
+   0.15,
+   0.14,
+   0.3
+  ],
+  "size_three_xyz": [
+   0.3,
+   0.3,
+   0.29
+  ],
+  "nodes": [
+   "Pad_Light"
+  ],
+  "materials": [
+   "Iron",
+   "PadLightEmissive",
+   "Paint"
+  ]
+ },
+ "Pad_Generator": {
+  "tris": 1104,
+  "bbox_min_blender": [
+   -0.91,
+   -0.95,
+   0.0
+  ],
+  "bbox_max_blender": [
+   1.21,
+   1.08,
+   4.12
+  ],
+  "size_three_xyz": [
+   2.13,
+   4.12,
+   2.03
+  ],
+  "nodes": [
+   "Pad_Generator"
+  ],
+  "materials": [
+   "PadLightEmissive",
+   "Paint"
+  ]
+ }
+}

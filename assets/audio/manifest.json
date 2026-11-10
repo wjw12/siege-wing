@@ -1,0 +1,3539 @@
+{
+ "generated": "2026-11-09",
+ "sample_rate": 48000,
+ "format": "ogg vorbis",
+ "levels": {
+  "vo": "active RMS -20 dBFS",
+  "sfx one-shots": "peak -1 dBFS",
+  "sfx loops": "active RMS -22 dBFS",
+  "music": "-16 LUFS integrated"
+ },
+ "call_signs": {
+  "player": "Hammer Two-Six",
+  "command": "Anvil Actual"
+ },
+ "vo": [
+  {
+   "id": "cmd_brief",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Hammer Two-Six, Anvil Actual. Two thousand men are dug in around that castle, and you are the only aircraft I have. Break the field army. Silence the walls. Then kill the warlord. You have until sundown.",
+   "event": "menu: start pressed / loading",
+   "file": "vo/command/cmd_brief.ogg",
+   "dur": 16.0,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_appr_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two-Six, you are cleared hot. Use the approach to get a feel for her. Collective climbs. It does not push you forward.",
+   "event": "mission phase 0, tutorial step 0",
+   "file": "vo/command/cmd_appr_1.ogg",
+   "dur": 7.84,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_appr_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Nose down to build speed. Level off to hold it.",
+   "event": "tutorial step 1",
+   "file": "vo/command/cmd_appr_2.ogg",
+   "dur": 3.68,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_appr_3",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Check your gunner sight. And remember: while you are aiming the cannon, nobody is flying the aircraft.",
+   "event": "tutorial step 3",
+   "file": "vo/command/cmd_appr_3.ogg",
+   "dur": 6.4,
+   "stt_match": 0.941
+  },
+  {
+   "id": "cmd_appr_4",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Flare back to bleed your speed. The army is just over that ridge.",
+   "event": "tutorial step 5",
+   "file": "vo/command/cmd_appr_4.ogg",
+   "dur": 4.79,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_reveal",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "There they are. Two thousand strong. Go to work, Two-Six.",
+   "event": "setPhase(1) on first run, with mus_reveal",
+   "file": "vo/command/cmd_reveal.ogg",
+   "dur": 5.89,
+   "stt_match": 0.857
+  },
+  {
+   "id": "cmd_p1_start",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Phase one. Break the field army. Kill the banner guard, and the block will run.",
+   "event": "setPhase(1)",
+   "file": "vo/command/cmd_p1_start.ogg",
+   "dur": 6.0,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "That's one formation broken.",
+   "event": "formationRouted (infantry)",
+   "file": "vo/command/cmd_routed_1.ogg",
+   "dur": 2.22,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Good effect. They're running.",
+   "event": "formationRouted (infantry)",
+   "file": "vo/command/cmd_routed_2.ogg",
+   "dur": 2.35,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_3",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Formation routed. Keep the pressure on.",
+   "event": "formationRouted (infantry)",
+   "file": "vo/command/cmd_routed_3.ogg",
+   "dur": 2.42,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_4",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Another banner down. They're breaking.",
+   "event": "formationRouted (infantry)",
+   "file": "vo/command/cmd_routed_4.ogg",
+   "dur": 2.5,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_half",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two down. Two to go.",
+   "event": "formationRouted, routed == 2",
+   "file": "vo/command/cmd_routed_half.ogg",
+   "dur": 2.08,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_routed_last",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "One more formation, Two-Six. Finish them.",
+   "event": "formationRouted, routed == 3",
+   "file": "vo/command/cmd_routed_last.ogg",
+   "dur": 3.32,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_panic_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "The low pass is working. Their shield wall is broken. Hit them now.",
+   "event": "formationPanic",
+   "file": "vo/command/cmd_panic_1.ogg",
+   "dur": 4.86,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_panic_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "They are terrified of you. Use it.",
+   "event": "formationPanic",
+   "file": "vo/command/cmd_panic_2.ogg",
+   "dur": 2.98,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_p2_start",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Field army is broken. Phase two: silence the walls. Four gate towers. Be advised, bombards and trebuchets are now in play.",
+   "event": "setPhase(2)",
+   "file": "vo/command/cmd_p2_start.ogg",
+   "dur": 11.04,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_pavise",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "They've brought out pavise shields. Their archers are covered now.",
+   "event": "setPhase(2) + 6 s",
+   "file": "vo/command/cmd_pavise.ogg",
+   "dur": 4.06,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_tower_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Tower down.",
+   "event": "structDestroyed (tower)",
+   "file": "vo/command/cmd_tower_1.ogg",
+   "dur": 1.25,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_tower_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Good hit. Gate tower destroyed.",
+   "event": "structDestroyed (tower)",
+   "file": "vo/command/cmd_tower_2.ogg",
+   "dur": 2.66,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_tower_3",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "That's another tower. Keep going.",
+   "event": "structDestroyed (tower)",
+   "file": "vo/command/cmd_tower_3.ogg",
+   "dur": 2.93,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_tower_last",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Last tower, Two-Six. Bring it down.",
+   "event": "structDestroyed, gate towers down == 3",
+   "file": "vo/command/cmd_tower_last.ogg",
+   "dur": 3.28,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_engine_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Siege engine destroyed.",
+   "event": "engineDestroyed",
+   "file": "vo/command/cmd_engine_1.ogg",
+   "dur": 2.24,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_engine_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Good kill on that engine.",
+   "event": "engineDestroyed",
+   "file": "vo/command/cmd_engine_2.ogg",
+   "dur": 1.67,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_engine_3",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "One less thing shooting at you.",
+   "event": "engineDestroyed",
+   "file": "vo/command/cmd_engine_3.ogg",
+   "dur": 1.88,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_p3_start",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "The walls are silent. Phase three. The warlord is in the courtyard with his guard. Fire pots are lit. Your rotor wash will clear the smoke. Finish this.",
+   "event": "setPhase(3)",
+   "file": "vo/command/cmd_p3_start.ogg",
+   "dur": 11.73,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_relaid",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Heads up. They've re-laid the bombards to your altitude. Change it.",
+   "event": "setPhase(3) + 6 s (BOMBARDS RE-LAID)",
+   "file": "vo/command/cmd_relaid.ogg",
+   "dur": 4.05,
+   "stt_match": 0.87
+  },
+  {
+   "id": "cmd_dusk_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "You're losing the light, Two-Six. The sun is almost gone.",
+   "event": "mission.tod crosses ~0.8",
+   "file": "vo/command/cmd_dusk_1.ogg",
+   "dur": 3.92,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_dusk_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "It's dark. You're fighting by firelight now.",
+   "event": "mission.tod crosses 1.0",
+   "file": "vo/command/cmd_dusk_2.ogg",
+   "dur": 3.34,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_win",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "The warlord is down. I say again, the warlord is down. The siege is broken. Outstanding work, Two-Six. Come home.",
+   "event": "mission.win()",
+   "file": "vo/command/cmd_win.ogg",
+   "dur": 10.5,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_lose_shot",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two-Six is down. I say again, Two-Six is down. Damn it.",
+   "event": "mission.lose() cause: shot down",
+   "file": "vo/command/cmd_lose_shot.ogg",
+   "dur": 6.57,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_lose_crash",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Hammer Two-Six, respond. Two-Six, respond!",
+   "event": "mission.lose() cause: crash",
+   "file": "vo/command/cmd_lose_crash.ogg",
+   "dur": 5.55,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_lose_bounds",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two-Six, you have left the combat area. Mission abort.",
+   "event": "mission.lose() cause: left the combat area",
+   "file": "vo/command/cmd_lose_bounds.ogg",
+   "dur": 5.43,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_bnd_warn",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two-Six, you are drifting to the edge of the combat area.",
+   "event": "mission.warnBand becomes true",
+   "file": "vo/command/cmd_bnd_warn.ogg",
+   "dur": 3.82,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_bnd_out",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Return to the combat area. Now.",
+   "event": "mission.outside becomes true",
+   "file": "vo/command/cmd_bnd_out.ogg",
+   "dur": 2.76,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_low_ammo",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "You're running dry. The rearm pad is on the far hill.",
+   "event": "flaggedLowAmmo",
+   "file": "vo/command/cmd_low_ammo.ogg",
+   "dur": 3.59,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_pad",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "On the pad. Rearming and repairing. Make it quick.",
+   "event": "padLanding",
+   "file": "vo/command/cmd_pad.ogg",
+   "dur": 3.37,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_repaired",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "You're patched up.",
+   "event": "repairDone",
+   "file": "vo/command/cmd_repaired.ogg",
+   "dur": 1.3,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_rearmed",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "You're loaded. Get back in the fight.",
+   "event": "takeoff from pad with full ammo",
+   "file": "vo/command/cmd_rearmed.ogg",
+   "dur": 2.61,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_hull_crit",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Two-Six, you are trailing smoke. Your call. Push on, or limp home.",
+   "event": "heli.hull < 30 (once)",
+   "file": "vo/command/cmd_hull_crit.ogg",
+   "dur": 6.3,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_nag",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "The clock is running, Two-Six.",
+   "event": "no kills for 45 s",
+   "file": "vo/command/cmd_nag.ogg",
+   "dur": 2.07,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_restart_1",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Reset. Go again.",
+   "event": "instant restart",
+   "file": "vo/command/cmd_restart_1.ogg",
+   "dur": 2.68,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_restart_2",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Again, Two-Six. From the ridge.",
+   "event": "instant restart",
+   "file": "vo/command/cmd_restart_2.ogg",
+   "dur": 2.59,
+   "stt_match": 1.0
+  },
+  {
+   "id": "cmd_restart_3",
+   "speaker": "command",
+   "voice": "Clyde",
+   "fx": "radio",
+   "text": "Shake it off. Back in.",
+   "event": "instant restart",
+   "file": "vo/command/cmd_restart_3.ogg",
+   "dur": 2.03,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_checkin",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Anvil, Hammer Two-Six, inbound.",
+   "event": "mission start",
+   "file": "vo/pilot/plt_checkin.ogg",
+   "dur": 2.28,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_cleared",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Copy. Cleared hot.",
+   "event": "after cmd_appr_1",
+   "file": "vo/pilot/plt_cleared.ogg",
+   "dur": 2.15,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_reveal",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "That... is a lot of spears.",
+   "event": "ridge crest, before cmd_reveal",
+   "file": "vo/pilot/plt_reveal.ogg",
+   "dur": 2.67,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_guns_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Guns, guns, guns.",
+   "event": "cannon burst start (rate-limit 12 s)",
+   "file": "vo/pilot/plt_guns_1.ogg",
+   "dur": 1.67,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_guns_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Engaging.",
+   "event": "cannon burst start",
+   "file": "vo/pilot/plt_guns_2.ogg",
+   "dur": 1.4,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_guns_3",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Guns.",
+   "event": "cannon burst start",
+   "file": "vo/pilot/plt_guns_3.ogg",
+   "dur": 1.51,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_rockets_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rockets.",
+   "event": "first rocket of a salvo (rate-limit 10 s)",
+   "file": "vo/pilot/plt_rockets_1.ogg",
+   "dur": 0.64,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_rockets_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rockets away.",
+   "event": "first rocket of a salvo",
+   "file": "vo/pilot/plt_rockets_2.ogg",
+   "dur": 1.08,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_rockets_3",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rippling rockets.",
+   "event": "salvo of 4+",
+   "file": "vo/pilot/plt_rockets_3.ogg",
+   "dur": 2.15,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_lock_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Good tone.",
+   "event": "weapons.lock.locked",
+   "file": "vo/pilot/plt_lock_1.ogg",
+   "dur": 1.22,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_lock_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "I have lock.",
+   "event": "weapons.lock.locked",
+   "file": "vo/pilot/plt_lock_2.ogg",
+   "dur": 2.83,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_missile_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rifle.",
+   "event": "missile fired",
+   "file": "vo/pilot/plt_missile_1.ogg",
+   "dur": 0.97,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_missile_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Missile away.",
+   "event": "missile fired",
+   "file": "vo/pilot/plt_missile_2.ogg",
+   "dur": 2.35,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_flares_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Flares!",
+   "event": "flares",
+   "file": "vo/pilot/plt_flares_1.ogg",
+   "dur": 0.93,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_flares_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Flares, flares!",
+   "event": "flares",
+   "file": "vo/pilot/plt_flares_2.ogg",
+   "dur": 2.47,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_hit_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Taking fire!",
+   "event": "heli.hit (rate-limit 8 s)",
+   "file": "vo/pilot/plt_hit_1.ogg",
+   "dur": 1.7,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_hit_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "We're hit!",
+   "event": "heli.hit, large",
+   "file": "vo/pilot/plt_hit_2.ogg",
+   "dur": 1.45,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_hit_3",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Arrows on the hull!",
+   "event": "arrowHit with many hits",
+   "file": "vo/pilot/plt_hit_3.ogg",
+   "dur": 1.98,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_hit_4",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Hngh! Still flying.",
+   "event": "boltHit",
+   "file": "vo/pilot/plt_hit_4.ogg",
+   "dur": 3.43,
+   "stt_match": 0.8
+  },
+  {
+   "id": "plt_close_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Whoa! That was close.",
+   "event": "boltPass",
+   "file": "vo/pilot/plt_close_1.ogg",
+   "dur": 2.25,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_close_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Bolt! Close!",
+   "event": "boltPass",
+   "file": "vo/pilot/plt_close_2.ogg",
+   "dur": 1.74,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_tail",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Tail rotor's hit. She's pulling on me.",
+   "event": "subDegraded: tail",
+   "file": "vo/pilot/plt_sub_tail.ogg",
+   "dur": 5.13,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_engine",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Losing engine power.",
+   "event": "subDegraded: engine",
+   "file": "vo/pilot/plt_sub_engine.ogg",
+   "dur": 2.14,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_hyd",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Hydraulics are going. Controls are sluggish.",
+   "event": "subDegraded: hyd",
+   "file": "vo/pilot/plt_sub_hyd.ogg",
+   "dur": 3.76,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_rotor",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "She's shaking. Main rotor's damaged.",
+   "event": "subDegraded: rotor",
+   "file": "vo/pilot/plt_sub_rotor.ogg",
+   "dur": 3.27,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_canopy",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Canopy's cracked. I can barely see.",
+   "event": "subDegraded: canopy",
+   "file": "vo/pilot/plt_sub_canopy.ogg",
+   "dur": 2.61,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sub_weapons",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Weapons are damaged.",
+   "event": "subDegraded: weapons",
+   "file": "vo/pilot/plt_sub_weapons.ogg",
+   "dur": 1.59,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_jam_cannon",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Cannon's jammed!",
+   "event": "CANNON JAMMED",
+   "file": "vo/pilot/plt_jam_cannon.ogg",
+   "dur": 1.33,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_jam_pod",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rocket pod's jammed.",
+   "event": "ROCKET POD JAMMED",
+   "file": "vo/pilot/plt_jam_pod.ogg",
+   "dur": 1.94,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_overheat",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Cannon's overheating. Letting it cool.",
+   "event": "CANNON OVERHEAT",
+   "file": "vo/pilot/plt_overheat.ogg",
+   "dur": 2.39,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_dry_cannon",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Cannon's dry.",
+   "event": "cannon ammo == 0",
+   "file": "vo/pilot/plt_dry_cannon.ogg",
+   "dur": 1.37,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_dry_missiles",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Winchester on missiles.",
+   "event": "missiles == 0",
+   "file": "vo/pilot/plt_dry_missiles.ogg",
+   "dur": 1.53,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_dry_rockets",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Rockets are gone.",
+   "event": "rockets == 0",
+   "file": "vo/pilot/plt_dry_rockets.ogg",
+   "dur": 0.97,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_winchester",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "I'm Winchester. Heading for the pad.",
+   "event": "all ammo low",
+   "file": "vo/pilot/plt_winchester.ogg",
+   "dur": 2.44,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_kill_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Good effect on target.",
+   "event": "big kill count in one pass",
+   "file": "vo/pilot/plt_kill_1.ogg",
+   "dur": 1.87,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_kill_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "They're running!",
+   "event": "formationRouted",
+   "file": "vo/pilot/plt_kill_2.ogg",
+   "dur": 1.11,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_kill_3",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Tower's coming down!",
+   "event": "structDestroyed (tower)",
+   "file": "vo/pilot/plt_kill_3.ogg",
+   "dur": 1.61,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_kill_4",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Splash.",
+   "event": "rocket/missile hit",
+   "file": "vo/pilot/plt_kill_4.ogg",
+   "dur": 1.04,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_sink",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Sinking! Power, power!",
+   "event": "vortex ring / sink warning",
+   "file": "vo/pilot/plt_sink.ogg",
+   "dur": 2.34,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_turnback",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Turning back.",
+   "event": "after cmd_bnd_out",
+   "file": "vo/pilot/plt_turnback.ogg",
+   "dur": 0.88,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_pad",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "On the pad.",
+   "event": "padLanding",
+   "file": "vo/pilot/plt_pad.ogg",
+   "dur": 2.31,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_lifting",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Lifting. Back in the fight.",
+   "event": "takeoff from pad",
+   "file": "vo/pilot/plt_lifting.ogg",
+   "dur": 2.12,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_mayday_1",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Mayday, mayday! Two-Six is going down!",
+   "event": "heliDown (crashSpin)",
+   "file": "vo/pilot/plt_mayday_1.ogg",
+   "dur": 3.22,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_mayday_2",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "I can't hold her! I can't hold her!",
+   "event": "heliDown: tail loss spin",
+   "file": "vo/pilot/plt_mayday_2.ogg",
+   "dur": 3.68,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_mayday_3",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Brace, brace, brace!",
+   "event": "just before terrain impact",
+   "file": "vo/pilot/plt_mayday_3.ogg",
+   "dur": 1.57,
+   "stt_match": 1.0
+  },
+  {
+   "id": "plt_win",
+   "speaker": "pilot",
+   "voice": "Liam",
+   "fx": "intercom",
+   "text": "Warlord's down. Two-Six is R-T-B.",
+   "event": "after cmd_win",
+   "file": "vo/pilot/plt_win.ogg",
+   "dur": 4.39,
+   "stt_match": 0.714
+  },
+  {
+   "id": "gun_volley_1",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Archers! Volley incoming!",
+   "event": "horn / volley start (threats.js:114)",
+   "file": "vo/gunner/gun_volley_1.ogg",
+   "dur": 2.18,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_volley_2",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Arrows up! Keep moving!",
+   "event": "volley start",
+   "file": "vo/gunner/gun_volley_2.ogg",
+   "dur": 1.99,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_volley_3",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Volley! Climb, climb!",
+   "event": "volley start, agl < 80",
+   "file": "vo/gunner/gun_volley_3.ogg",
+   "dur": 2.84,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_ballista_1",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Ballista's tracking us! Jink!",
+   "event": "ballista aim tell (threats.js:132)",
+   "file": "vo/gunner/gun_ballista_1.ogg",
+   "dur": 2.32,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_ballista_2",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Ballista aiming! Break!",
+   "event": "ballista aim tell",
+   "file": "vo/gunner/gun_ballista_2.ogg",
+   "dur": 2.49,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_ballista_3",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Bolt, bolt, bolt!",
+   "event": "boltFire",
+   "file": "vo/gunner/gun_ballista_3.ogg",
+   "dur": 1.69,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_bombard_1",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Smoke on the wall! Bombard!",
+   "event": "bombardFire",
+   "file": "vo/gunner/gun_bombard_1.ogg",
+   "dur": 2.21,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_bombard_2",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Flak! Change altitude!",
+   "event": "flak burst near",
+   "file": "vo/gunner/gun_bombard_2.ogg",
+   "dur": 1.75,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_treb_1",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Trebuchet shot, inbound!",
+   "event": "trebRelease",
+   "file": "vo/gunner/gun_treb_1.ogg",
+   "dur": 2.0,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_treb_2",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Boulder in the air! Move!",
+   "event": "boulder within 4 s of impact near heli",
+   "file": "vo/gunner/gun_treb_2.ogg",
+   "dur": 2.37,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_spot_ballista",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Ballista on the tower. Marked.",
+   "event": "engine spotted (ballista)",
+   "file": "vo/gunner/gun_spot_ballista.ogg",
+   "dur": 2.09,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_spot_treb",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Trebuchet, behind the wall. Marked.",
+   "event": "engine spotted (trebuchet)",
+   "file": "vo/gunner/gun_spot_treb.ogg",
+   "dur": 2.41,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_spot_banner",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Banner guard, centre of the block.",
+   "event": "phase 1, near a formation",
+   "file": "vo/gunner/gun_spot_banner.ogg",
+   "dur": 2.62,
+   "stt_match": 0.833
+  },
+  {
+   "id": "gun_lock",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Lock is good. Send it.",
+   "event": "weapons.lock.locked",
+   "file": "vo/gunner/gun_lock.ogg",
+   "dur": 1.91,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_destroyed_1",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Target destroyed.",
+   "event": "engineDestroyed / structDestroyed",
+   "file": "vo/gunner/gun_destroyed_1.ogg",
+   "dur": 2.23,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_destroyed_2",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Good hits. Good hits.",
+   "event": "cannon kills",
+   "file": "vo/gunner/gun_destroyed_2.ogg",
+   "dur": 2.63,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_low",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "You're too low!",
+   "event": "agl < 12 at speed",
+   "file": "vo/gunner/gun_low.ogg",
+   "dur": 1.83,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_trees",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Trees! Pull up!",
+   "event": "rotor near trees",
+   "file": "vo/gunner/gun_trees.ogg",
+   "dur": 2.28,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_wall",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Watch the wall!",
+   "event": "rotor near wall/tower",
+   "file": "vo/gunner/gun_wall.ogg",
+   "dur": 1.75,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_smoke",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "I can't see through this smoke. Get lower and wash it out.",
+   "event": "phase 3, in courtyard smoke",
+   "file": "vo/gunner/gun_smoke.ogg",
+   "dur": 3.75,
+   "stt_match": 1.0
+  },
+  {
+   "id": "gun_warlord",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "That's him. Gold banner, centre of the courtyard.",
+   "event": "phase 3, warlord in view",
+   "file": "vo/gunner/gun_warlord.ogg",
+   "dur": 3.41,
+   "stt_match": 0.875
+  },
+  {
+   "id": "gun_fear",
+   "speaker": "gunner",
+   "voice": "Jessica",
+   "fx": "intercom",
+   "text": "Look at them run.",
+   "event": "formationPanic",
+   "file": "vo/gunner/gun_fear.ogg",
+   "dur": 1.85,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_altitude",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Altitude. Altitude.",
+   "event": "agl low and descending",
+   "file": "vo/betty/bty_altitude.ogg",
+   "dur": 1.89,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_pullup",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Pull up. Pull up.",
+   "event": "terrain closure",
+   "file": "vo/betty/bty_pullup.ogg",
+   "dur": 0.9,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_sink",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Sink rate.",
+   "event": "s.sink (replaces whoop)",
+   "file": "vo/betty/bty_sink.ogg",
+   "dur": 0.98,
+   "stt_match": 0.5
+  },
+  {
+   "id": "bty_rpm",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Rotor R P M low.",
+   "event": "s.lowRPM",
+   "file": "vo/betty/bty_rpm.ogg",
+   "dur": 1.79,
+   "stt_match": 0.5
+  },
+  {
+   "id": "bty_engine",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Warning. Engine damage.",
+   "event": "subDegraded: engine",
+   "file": "vo/betty/bty_engine.ogg",
+   "dur": 1.61,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_tail",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Warning. Tail rotor.",
+   "event": "subDegraded: tail",
+   "file": "vo/betty/bty_tail.ogg",
+   "dur": 1.56,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_hyd",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Warning. Hydraulic pressure.",
+   "event": "subDegraded: hyd",
+   "file": "vo/betty/bty_hyd.ogg",
+   "dur": 1.76,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_rotor",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Warning. Main rotor.",
+   "event": "subDegraded: rotor",
+   "file": "vo/betty/bty_rotor.ogg",
+   "dur": 1.56,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_hull",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Warning. Hull critical.",
+   "event": "masterAlarm (hull < 30)",
+   "file": "vo/betty/bty_hull.ogg",
+   "dur": 1.6,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_overheat",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Cannon overheat.",
+   "event": "CANNON OVERHEAT",
+   "file": "vo/betty/bty_overheat.ogg",
+   "dur": 1.3,
+   "stt_match": 0.5
+  },
+  {
+   "id": "bty_jam",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Weapon jammed.",
+   "event": "jam",
+   "file": "vo/betty/bty_jam.ogg",
+   "dur": 1.13,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_ammo",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Ammunition low.",
+   "event": "flaggedLowAmmo",
+   "file": "vo/betty/bty_ammo.ogg",
+   "dur": 1.37,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_flares_out",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Flares depleted.",
+   "event": "flares == 0",
+   "file": "vo/betty/bty_flares_out.ogg",
+   "dur": 1.37,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_lock",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Target locked.",
+   "event": "lock == 2",
+   "file": "vo/betty/bty_lock.ogg",
+   "dur": 1.21,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_ceiling",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Service ceiling.",
+   "event": "altitude > 380 m",
+   "file": "vo/betty/bty_ceiling.ogg",
+   "dur": 1.12,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_bnd_warn",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Leaving combat area.",
+   "event": "warnBand",
+   "file": "vo/betty/bty_bnd_warn.ogg",
+   "dur": 1.39,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_bnd_out",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Return to combat area.",
+   "event": "outside",
+   "file": "vo/betty/bty_bnd_out.ogg",
+   "dur": 1.44,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_rearm",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Rearm complete.",
+   "event": "ammo full on pad",
+   "file": "vo/betty/bty_rearm.ogg",
+   "dur": 1.24,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_repair",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Repair complete.",
+   "event": "repairDone",
+   "file": "vo/betty/bty_repair.ogg",
+   "dur": 1.19,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_nominal",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "All systems nominal.",
+   "event": "all subsystems repaired / mission start",
+   "file": "vo/betty/bty_nominal.ogg",
+   "dur": 1.35,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_10",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Ten.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_10.ogg",
+   "dur": 0.76,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_9",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Nine.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_9.ogg",
+   "dur": 0.69,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_8",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Eight.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_8.ogg",
+   "dur": 0.62,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_7",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Seven.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_7.ogg",
+   "dur": 0.65,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_6",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Six.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_6.ogg",
+   "dur": 0.74,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_5",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Five.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_5.ogg",
+   "dur": 0.69,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_4",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Four.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_4.ogg",
+   "dur": 0.6,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_3",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Three.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_3.ogg",
+   "dur": 0.61,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_2",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "Two.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_2.ogg",
+   "dur": 0.57,
+   "stt_match": 1.0
+  },
+  {
+   "id": "bty_1",
+   "speaker": "betty",
+   "voice": "Alice",
+   "fx": "betty",
+   "text": "One.",
+   "event": "boundary countdown",
+   "file": "vo/betty/bty_1.ogg",
+   "dur": 0.71,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_loose_1",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "Nock! Draw! Loose!",
+   "event": "volley start, at formation position",
+   "file": "vo/enemy/enm_loose_1.ogg",
+   "dur": 4.62,
+   "stt_match": 0.667
+  },
+  {
+   "id": "enm_loose_2",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "Archers! Loose!",
+   "event": "volley start",
+   "file": "vo/enemy/enm_loose_2.ogg",
+   "dur": 2.0,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_loose_3",
+   "speaker": "soldier",
+   "voice": "Harry",
+   "fx": "dry",
+   "text": "Loose!",
+   "event": "volley start",
+   "file": "vo/enemy/enm_loose_3.ogg",
+   "dur": 0.74,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_shields_1",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "Shields! Shields up!",
+   "event": "formation raises shields",
+   "file": "vo/enemy/enm_shields_1.ogg",
+   "dur": 1.76,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_shields_2",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "Shield wall! Lock them!",
+   "event": "formation raises shields",
+   "file": "vo/enemy/enm_shields_2.ogg",
+   "dur": 2.27,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_hold_1",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "Hold the line! Hold!",
+   "event": "formation under fire, not yet routed",
+   "file": "vo/enemy/enm_hold_1.ogg",
+   "dur": 1.82,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_hold_2",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "Stand fast, you dogs! Stand fast!",
+   "event": "formation under fire",
+   "file": "vo/enemy/enm_hold_2.ogg",
+   "dur": 2.81,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_dragon_1",
+   "speaker": "soldier",
+   "voice": "Harry",
+   "fx": "dry",
+   "text": "Dragon! It's a dragon!",
+   "event": "formationPanic",
+   "file": "vo/enemy/enm_dragon_1.ogg",
+   "dur": 2.59,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_dragon_2",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "It breathes fire! Run!",
+   "event": "formationPanic",
+   "file": "vo/enemy/enm_dragon_2.ogg",
+   "dur": 2.0,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_run_1",
+   "speaker": "soldier",
+   "voice": "Harry",
+   "fx": "dry",
+   "text": "Run! Run for your lives!",
+   "event": "formationRouted",
+   "file": "vo/enemy/enm_run_1.ogg",
+   "dur": 1.98,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_run_2",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "Fall back! Fall back to the castle!",
+   "event": "formationRouted",
+   "file": "vo/enemy/enm_run_2.ogg",
+   "dur": 2.31,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_ballista",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "Ballista! Take aim!",
+   "event": "ballista aim, at tower",
+   "file": "vo/enemy/enm_ballista.ogg",
+   "dur": 2.0,
+   "stt_match": 0.667
+  },
+  {
+   "id": "enm_bombard",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "Fire the bombard!",
+   "event": "bombardFire, 0.4 s before",
+   "file": "vo/enemy/enm_bombard.ogg",
+   "dur": 1.71,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_treb",
+   "speaker": "serjeant",
+   "voice": "Daniel",
+   "fx": "dry",
+   "text": "Trebuchet! Release!",
+   "event": "trebRelease",
+   "file": "vo/enemy/enm_treb.ogg",
+   "dur": 2.29,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_firepots",
+   "speaker": "warlord",
+   "voice": "Callum",
+   "fx": "dry",
+   "text": "Light the fire pots! Blind the beast!",
+   "event": "setPhase(3)",
+   "file": "vo/enemy/enm_firepots.ogg",
+   "dur": 2.53,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_warlord_taunt_1",
+   "speaker": "warlord",
+   "voice": "Callum",
+   "fx": "dry",
+   "text": "Come down and face me, demon!",
+   "event": "phase 3, heli enters courtyard",
+   "file": "vo/enemy/enm_warlord_taunt_1.ogg",
+   "dur": 2.19,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_warlord_taunt_2",
+   "speaker": "warlord",
+   "voice": "Callum",
+   "fx": "dry",
+   "text": "It bleeds like any beast! Bring it down!",
+   "event": "phase 3, heli takes a hit",
+   "file": "vo/enemy/enm_warlord_taunt_2.ogg",
+   "dur": 3.28,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_warlord_taunt_3",
+   "speaker": "warlord",
+   "voice": "Callum",
+   "fx": "dry",
+   "text": "I will mount your iron wings above my gate!",
+   "event": "phase 3",
+   "file": "vo/enemy/enm_warlord_taunt_3.ogg",
+   "dur": 3.79,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_victory_1",
+   "speaker": "captain",
+   "voice": "George",
+   "fx": "dry",
+   "text": "The beast is dead! The beast is dead!",
+   "event": "mission.lose(), with crowd cheer",
+   "file": "vo/enemy/enm_victory_1.ogg",
+   "dur": 2.84,
+   "stt_match": 1.0
+  },
+  {
+   "id": "enm_victory_2",
+   "speaker": "soldier",
+   "voice": "Harry",
+   "fx": "dry",
+   "text": "It falls! The dragon falls!",
+   "event": "heliDown",
+   "file": "vo/enemy/enm_victory_2.ogg",
+   "dur": 2.45,
+   "stt_match": 1.0
+  }
+ ],
+ "casting": [
+  {
+   "line": "cmd_brief",
+   "role": "command",
+   "voice": "Bill",
+   "file": "vo/_casting/cmd_brief__command_alt_bill.ogg"
+  },
+  {
+   "line": "cmd_brief",
+   "role": "command",
+   "voice": "Brian",
+   "file": "vo/_casting/cmd_brief__command_alt_brian.ogg"
+  },
+  {
+   "line": "cmd_lose_shot",
+   "role": "command",
+   "voice": "Bill",
+   "file": "vo/_casting/cmd_lose_shot__command_alt_bill.ogg"
+  },
+  {
+   "line": "cmd_lose_shot",
+   "role": "command",
+   "voice": "Brian",
+   "file": "vo/_casting/cmd_lose_shot__command_alt_brian.ogg"
+  },
+  {
+   "line": "cmd_p2_start",
+   "role": "command",
+   "voice": "Bill",
+   "file": "vo/_casting/cmd_p2_start__command_alt_bill.ogg"
+  },
+  {
+   "line": "cmd_p2_start",
+   "role": "command",
+   "voice": "Brian",
+   "file": "vo/_casting/cmd_p2_start__command_alt_brian.ogg"
+  },
+  {
+   "line": "gun_ballista_1",
+   "role": "gunner",
+   "voice": "Sarah",
+   "file": "vo/_casting/gun_ballista_1__gunner_alt_sarah.ogg"
+  },
+  {
+   "line": "gun_spot_banner",
+   "role": "gunner",
+   "voice": "Sarah",
+   "file": "vo/_casting/gun_spot_banner__gunner_alt_sarah.ogg"
+  },
+  {
+   "line": "gun_treb_2",
+   "role": "gunner",
+   "voice": "Sarah",
+   "file": "vo/_casting/gun_treb_2__gunner_alt_sarah.ogg"
+  },
+  {
+   "line": "plt_guns_1",
+   "role": "pilot",
+   "voice": "Chris",
+   "file": "vo/_casting/plt_guns_1__pilot_alt_chris.ogg"
+  },
+  {
+   "line": "plt_guns_1",
+   "role": "pilot",
+   "voice": "Will",
+   "file": "vo/_casting/plt_guns_1__pilot_alt_will.ogg"
+  },
+  {
+   "line": "plt_mayday_1",
+   "role": "pilot",
+   "voice": "Chris",
+   "file": "vo/_casting/plt_mayday_1__pilot_alt_chris.ogg"
+  },
+  {
+   "line": "plt_mayday_1",
+   "role": "pilot",
+   "voice": "Will",
+   "file": "vo/_casting/plt_mayday_1__pilot_alt_will.ogg"
+  },
+  {
+   "line": "plt_sub_tail",
+   "role": "pilot",
+   "voice": "Chris",
+   "file": "vo/_casting/plt_sub_tail__pilot_alt_chris.ogg"
+  },
+  {
+   "line": "plt_sub_tail",
+   "role": "pilot",
+   "voice": "Will",
+   "file": "vo/_casting/plt_sub_tail__pilot_alt_will.ogg"
+  }
+ ],
+ "sfx": [
+  {
+   "id": "cannon_shot",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_shot_1.ogg",
+    "sfx/weapons/cannon_shot_2.ogg",
+    "sfx/weapons/cannon_shot_3.ogg",
+    "sfx/weapons/cannon_shot_4.ogg"
+   ],
+   "dur": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "cannon",
+   "prompt": "Single shot from a 30mm attack helicopter autocannon, very heavy deep bass thump you feel in your chest together with a sharp loud crack, short metallic action clank, close perspective, short tail"
+  },
+  {
+   "id": "cannon_burst",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_burst_1.ogg",
+    "sfx/weapons/cannon_burst_2.ogg",
+    "sfx/weapons/cannon_burst_3.ogg"
+   ],
+   "dur": [
+    2.48,
+    2.48,
+    2.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "cannon (burst start layer)",
+   "prompt": "Five round burst from a 30mm attack helicopter chain gun, heavy rhythmic thumping at ten rounds per second, close and powerful with deep low end, short echo across an open valley"
+  },
+  {
+   "id": "cannon_tail",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_tail_1.ogg",
+    "sfx/weapons/cannon_tail_2.ogg"
+   ],
+   "dur": [
+    3.48,
+    3.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: play when the trigger is released",
+   "prompt": "Echo tail of heavy autocannon fire rolling away across a mountain valley, reverberant decaying rumble only, no close gunshots"
+  },
+  {
+   "id": "cannon_impact_dirt",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_impact_dirt_1.ogg",
+    "sfx/weapons/cannon_impact_dirt_2.ogg",
+    "sfx/weapons/cannon_impact_dirt_3.ogg",
+    "sfx/weapons/cannon_impact_dirt_4.ogg"
+   ],
+   "dur": [
+    1.48,
+    1.48,
+    1.48,
+    1.48
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "cannonImpact",
+   "prompt": "30mm high explosive cannon shell hitting dirt ground, sharp crack, burst of soil and gravel spraying, small debris falling"
+  },
+  {
+   "id": "cannon_impact_stone",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_impact_stone_1.ogg",
+    "sfx/weapons/cannon_impact_stone_2.ogg",
+    "sfx/weapons/cannon_impact_stone_3.ogg"
+   ],
+   "dur": [
+    1.25,
+    0.95,
+    1.48
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "cannonImpact on castle",
+   "prompt": "30mm high explosive cannon shell hitting a stone castle wall, sharp crack, masonry chips and stone fragments scattering"
+  },
+  {
+   "id": "rocket_launch",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/rocket_launch_1.ogg",
+    "sfx/weapons/rocket_launch_2.ogg",
+    "sfx/weapons/rocket_launch_3.ogg"
+   ],
+   "dur": [
+    2.97,
+    2.77,
+    3.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "rocket",
+   "prompt": "Unguided rocket launching from a helicopter rocket pod, violent ignition whoosh, roaring motor racing away into the distance, close perspective"
+  },
+  {
+   "id": "missile_launch",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/missile_launch_1.ogg",
+    "sfx/weapons/missile_launch_2.ogg"
+   ],
+   "dur": [
+    4.0,
+    4.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "missile",
+   "prompt": "Guided anti-tank missile launching from a helicopter rail, metallic clunk of release, then a heavy rocket motor igniting with a roar and receding fast"
+  },
+  {
+   "id": "flare_dispense",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/flare_dispense_1.ogg",
+    "sfx/weapons/flare_dispense_2.ogg",
+    "sfx/weapons/flare_dispense_3.ogg"
+   ],
+   "dur": [
+    2.48,
+    2.48,
+    2.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "flare",
+   "prompt": "Aircraft countermeasure flares ejecting, rapid series of sharp pops followed by burning magnesium hiss and sizzle fading away"
+  },
+  {
+   "id": "expl_small",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/expl_small_1.ogg",
+    "sfx/weapons/expl_small_2.ogg",
+    "sfx/weapons/expl_small_3.ogg"
+   ],
+   "dur": [
+    1.49,
+    2.09,
+    3.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "explSmall",
+   "prompt": "Small high explosive shell detonating on open ground, close, bright sharp crack and punchy mid-range bang, gritty blast of dirt, small debris pattering down, full frequency range"
+  },
+  {
+   "id": "expl_medium",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/expl_medium_1.ogg",
+    "sfx/weapons/expl_medium_2.ogg",
+    "sfx/weapons/expl_medium_3.ogg"
+   ],
+   "dur": [
+    4.48,
+    3.42,
+    4.48
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "explMedium",
+   "prompt": "Rocket warhead explosion on a battlefield, hard crack then deep heavy boom with strong low end, debris and dirt raining down, echo rolling off hills"
+  },
+  {
+   "id": "expl_large",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/expl_large_1.ogg",
+    "sfx/weapons/expl_large_2.ogg",
+    "sfx/weapons/expl_large_3.ogg"
+   ],
+   "dur": [
+    7.0,
+    7.0,
+    7.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "explLarge",
+   "prompt": "Massive explosion destroying a stone building, close, violent bright crack and tearing roar on top of a huge deep boom, chunks of stone and debris crashing and raining down, long echo across a valley, full frequency range"
+  },
+  {
+   "id": "expl_distant",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/expl_distant_1.ogg",
+    "sfx/weapons/expl_distant_2.ogg",
+    "sfx/weapons/expl_distant_3.ogg"
+   ],
+   "dur": [
+    3.66,
+    5.0,
+    5.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: any explosion beyond ~500 m",
+   "prompt": "Distant explosion far across a valley, muffled low boom arriving late, long rolling echo, no close detail"
+  },
+  {
+   "id": "expl_water",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/expl_water_1.ogg",
+    "sfx/weapons/expl_water_2.ogg"
+   ],
+   "dur": [
+    3.48,
+    3.29
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "explSmall in the river",
+   "prompt": "Explosion in a river, deep thump and a tall geyser of water bursting up, heavy spray and droplets raining back down"
+  },
+  {
+   "id": "tower_collapse",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/tower_collapse_1.ogg",
+    "sfx/weapons/tower_collapse_2.ogg"
+   ],
+   "dur": [
+    10.0,
+    8.59
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "collapse",
+   "prompt": "Medieval stone tower collapsing after an explosion, masonry cracking, huge stone blocks tumbling and crashing down, deep ground rumble, dust and settling rubble"
+  },
+  {
+   "id": "wall_breach",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/wall_breach_1.ogg",
+    "sfx/weapons/wall_breach_2.ogg"
+   ],
+   "dur": [
+    5.14,
+    6.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "collapse (wall section)",
+   "prompt": "Section of a thick stone castle wall breaking apart and falling, heavy blocks sliding and smashing on the ground, gravel settling"
+  },
+  {
+   "id": "debris_rain",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/debris_rain_1.ogg",
+    "sfx/weapons/debris_rain_2.ogg",
+    "sfx/weapons/debris_rain_3.ogg"
+   ],
+   "dur": [
+    3.15,
+    3.11,
+    3.48
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "debris",
+   "prompt": "Stone debris, rocks and clods of dirt raining down onto the ground after an explosion, scattered thuds and pattering"
+  },
+  {
+   "id": "weapon_select",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/weapon_select_1.ogg",
+    "sfx/weapons/weapon_select_2.ogg"
+   ],
+   "dur": [
+    0.55,
+    0.8
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "weaponSwitch",
+   "prompt": "Military aircraft weapon selector switch, solid mechanical clunk followed by a short electronic confirmation chirp"
+  },
+  {
+   "id": "dry_fire",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/dry_fire_1.ogg",
+    "sfx/weapons/dry_fire_2.ogg"
+   ],
+   "dur": [
+    0.48,
+    0.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "dryFire",
+   "prompt": "Empty weapon trigger click, dry metallic solenoid click, no gunshot"
+  },
+  {
+   "id": "cannon_jam",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_jam_1.ogg",
+    "sfx/weapons/cannon_jam_2.ogg"
+   ],
+   "dur": [
+    1.36,
+    1.36
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "jam",
+   "prompt": "Heavy autocannon jamming, metal feed mechanism grinding and seizing with a hard clank, electric motor straining then stopping"
+  },
+  {
+   "id": "cannon_overheat_hiss",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/cannon_overheat_hiss.ogg"
+   ],
+   "dur": [
+    2.46
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "overheat (heat loop tail)",
+   "prompt": "Overheated gun barrel hissing and ticking as hot metal cools, steam sizzle"
+  },
+  {
+   "id": "rearm_load",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/rearm_load_1.ogg",
+    "sfx/weapons/rearm_load_2.ogg",
+    "sfx/weapons/rearm_load_3.ogg"
+   ],
+   "dur": [
+    3.0,
+    3.0,
+    2.82
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "rearmTick",
+   "prompt": "Ground crew loading ammunition into a helicopter, heavy belt links rattling, metal latches snapping shut, a rocket sliding into a tube with a clunk"
+  },
+  {
+   "id": "repair_tool",
+   "group": "weapons",
+   "files": [
+    "sfx/weapons/repair_tool_1.ogg",
+    "sfx/weapons/repair_tool_2.ogg"
+   ],
+   "dur": [
+    2.39,
+    2.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "repairDone",
+   "prompt": "Fast aircraft field repair, pneumatic impact wrench bursts, ratchet clicks, a panel slammed shut"
+  },
+  {
+   "id": "rotor_ext_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/rotor_ext_loop.ogg"
+   ],
+   "dur": [
+    12.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "rotor thump layer (third person)",
+   "prompt": "Attack helicopter hovering, close exterior perspective, steady heavy rotor blade thumping with turbine whine underneath, constant and even",
+   "seam_db": -12.1
+  },
+  {
+   "id": "rotor_int_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/rotor_int_loop.ogg"
+   ],
+   "dur": [
+    12.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "rotor layer (cockpit)",
+   "prompt": "Inside the cockpit of a military attack helicopter in flight, muffled deep rotor thump, steady turbine whine, airframe vibration hum, constant and even",
+   "seam_db": -16.5
+  },
+  {
+   "id": "turbine_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/turbine_loop.ogg"
+   ],
+   "dur": [
+    9.94
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "turbine",
+   "prompt": "Helicopter turboshaft engine at steady power, high pitched turbine whine with hot exhaust roar, constant, no rotor blades",
+   "seam_db": -9.6
+  },
+  {
+   "id": "blade_slap_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/blade_slap_loop.ogg"
+   ],
+   "dur": [
+    8.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "slap layer (high load / banking)",
+   "prompt": "Helicopter in a hard banking turn, loud aggressive blade slap, sharp rhythmic wop-wop-wop, constant",
+   "seam_db": -34.8
+  },
+  {
+   "id": "rotor_damaged_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/rotor_damaged_loop.ogg"
+   ],
+   "dur": [
+    10.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "dmg rotor layer",
+   "prompt": "Damaged helicopter rotor, uneven wobbling blade thump, rattling and shuddering airframe, metallic vibration, constant",
+   "seam_db": -27.7
+  },
+  {
+   "id": "engine_damaged_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/engine_damaged_loop.ogg"
+   ],
+   "dur": [
+    8.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "grind / sputter layer",
+   "prompt": "Failing helicopter turbine engine, grinding bearings, sputtering and surging whine, metallic rasp, constant",
+   "seam_db": -15.3
+  },
+  {
+   "id": "cockpit_rattle_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/cockpit_rattle_loop.ogg"
+   ],
+   "dur": [
+    8.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: scaled by shake",
+   "prompt": "Aircraft cockpit rattling under heavy vibration, loose panels, harness buckles and instruments buzzing and clattering, constant",
+   "seam_db": -13.0
+  },
+  {
+   "id": "wind_slipstream_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/wind_slipstream_loop.ogg"
+   ],
+   "dur": [
+    9.94
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "slipstream wind",
+   "prompt": "Fast wind rushing over an aircraft canopy at speed, strong buffeting airflow, constant, no engine",
+   "seam_db": -11.1
+  },
+  {
+   "id": "rotor_wash_loop",
+   "group": "heli",
+   "files": [
+    "sfx/heli/rotor_wash_loop.ogg"
+   ],
+   "dur": [
+    9.94
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: low hover over grass / smoke",
+   "prompt": "Powerful helicopter downwash blasting tall grass, dust and leaves near the ground, turbulent gusting wind, constant, no engine sound",
+   "seam_db": -4.7
+  },
+  {
+   "id": "heli_startup",
+   "group": "heli",
+   "files": [
+    "sfx/heli/heli_startup.ogg"
+   ],
+   "dur": [
+    16.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: mission start / restart",
+   "prompt": "Military helicopter engine start, igniters clicking, turbine whine spooling up, rotor blades starting to turn and accelerating to full speed"
+  },
+  {
+   "id": "heli_flyby",
+   "group": "heli",
+   "files": [
+    "sfx/heli/heli_flyby_1.ogg",
+    "sfx/heli/heli_flyby_2.ogg"
+   ],
+   "dur": [
+    5.95,
+    5.9
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: menu / crowd perspective",
+   "prompt": "Attack helicopter flying past fast and low overhead, doppler shifting rotor thump and turbine roar, approaching then receding"
+  },
+  {
+   "id": "arrow_hull_hit",
+   "group": "heli",
+   "files": [
+    "sfx/heli/arrow_hull_hit_1.ogg",
+    "sfx/heli/arrow_hull_hit_2.ogg",
+    "sfx/heli/arrow_hull_hit_3.ogg",
+    "sfx/heli/arrow_hull_hit_4.ogg",
+    "sfx/heli/arrow_hull_hit_5.ogg"
+   ],
+   "dur": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.94
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "arrowHit",
+   "prompt": "Single arrow striking the metal skin of an aircraft, sharp metallic tink and a brief clatter, heard from inside"
+  },
+  {
+   "id": "arrow_volley_hull",
+   "group": "heli",
+   "files": [
+    "sfx/heli/arrow_volley_hull_1.ogg",
+    "sfx/heli/arrow_volley_hull_2.ogg",
+    "sfx/heli/arrow_volley_hull_3.ogg"
+   ],
+   "dur": [
+    2.38,
+    2.48,
+    2.39
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "arrowHit with many hits",
+   "prompt": "Dozens of arrows hailing against a metal aircraft fuselage, rapid metallic clattering and pinging like hard rain, heard from inside"
+  },
+  {
+   "id": "bolt_hull_hit",
+   "group": "heli",
+   "files": [
+    "sfx/heli/bolt_hull_hit_1.ogg",
+    "sfx/heli/bolt_hull_hit_2.ogg",
+    "sfx/heli/bolt_hull_hit_3.ogg"
+   ],
+   "dur": [
+    2.11,
+    2.1,
+    2.02
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "boltHit",
+   "prompt": "Huge iron tipped ballista bolt punching into a metal aircraft hull, violent heavy impact, tearing sheet metal, rattling aftermath"
+  },
+  {
+   "id": "bolt_pass",
+   "group": "heli",
+   "files": [
+    "sfx/heli/bolt_pass_1.ogg",
+    "sfx/heli/bolt_pass_2.ogg",
+    "sfx/heli/bolt_pass_3.ogg"
+   ],
+   "dur": [
+    0.96,
+    1.3,
+    1.18
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "boltPass",
+   "prompt": "Large heavy projectile flying past very close at high speed, deep fast whoosh with a sharp crack of air"
+  },
+  {
+   "id": "hull_hit_heavy",
+   "group": "heli",
+   "files": [
+    "sfx/heli/hull_hit_heavy_1.ogg",
+    "sfx/heli/hull_hit_heavy_2.ogg",
+    "sfx/heli/hull_hit_heavy_3.ogg"
+   ],
+   "dur": [
+    0.81,
+    1.48,
+    0.85
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "hullHit",
+   "prompt": "Heavy blunt impact on a metal aircraft fuselage, deep clang and thud, structure groaning"
+  },
+  {
+   "id": "glass_crack",
+   "group": "heli",
+   "files": [
+    "sfx/heli/glass_crack_1.ogg",
+    "sfx/heli/glass_crack_2.ogg",
+    "sfx/heli/glass_crack_3.ogg"
+   ],
+   "dur": [
+    1.48,
+    1.48,
+    1.17
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "glassCrack",
+   "prompt": "Thick aircraft canopy glass cracking from an impact, sharp crack followed by spreading splintering crackle"
+  },
+  {
+   "id": "rotor_strike",
+   "group": "heli",
+   "files": [
+    "sfx/heli/rotor_strike_1.ogg",
+    "sfx/heli/rotor_strike_2.ogg"
+   ],
+   "dur": [
+    2.15,
+    2.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "rotorStrike",
+   "prompt": "Helicopter rotor blades striking a stone wall, blades shattering violently, shrieking metal, fragments whipping away"
+  },
+  {
+   "id": "crash_spin",
+   "group": "heli",
+   "files": [
+    "sfx/heli/crash_spin_1.ogg",
+    "sfx/heli/crash_spin_2.ogg"
+   ],
+   "dur": [
+    4.0,
+    4.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "crashSpin",
+   "prompt": "Helicopter spinning out of control, engine screaming and over-revving, rotor whirring unevenly, airframe groaning as it falls"
+  },
+  {
+   "id": "crash_impact",
+   "group": "heli",
+   "files": [
+    "sfx/heli/crash_impact_1.ogg",
+    "sfx/heli/crash_impact_2.ogg"
+   ],
+   "dur": [
+    9.0,
+    8.78
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "crash",
+   "prompt": "Helicopter crashing into the ground, crunching metal, rotor blades thrashing into dirt, then a fuel explosion fireball and a burning wreck crackling"
+  },
+  {
+   "id": "touchdown",
+   "group": "heli",
+   "files": [
+    "sfx/heli/touchdown_1.ogg",
+    "sfx/heli/touchdown_2.ogg",
+    "sfx/heli/touchdown_3.ogg"
+   ],
+   "dur": [
+    1.15,
+    1.48,
+    1.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "touchdown",
+   "prompt": "Helicopter landing gear touching down on a hard pad, heavy thump, suspension struts compressing and creaking"
+  },
+  {
+   "id": "airframe_stress",
+   "group": "heli",
+   "files": [
+    "sfx/heli/airframe_stress_1.ogg",
+    "sfx/heli/airframe_stress_2.ogg"
+   ],
+   "dur": [
+    2.48,
+    2.47
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: high g / damaged hydraulics",
+   "prompt": "Metal aircraft airframe creaking and groaning under heavy strain, low metallic stress sounds"
+  },
+  {
+   "id": "war_horn",
+   "group": "threats",
+   "files": [
+    "sfx/threats/war_horn_1.ogg",
+    "sfx/threats/war_horn_2.ogg",
+    "sfx/threats/war_horn_3.ogg",
+    "sfx/threats/war_horn_4.ogg"
+   ],
+   "dur": [
+    3.87,
+    4.25,
+    3.96,
+    3.39
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "horn",
+   "prompt": "Medieval war horn blast, deep bellowing animal horn, one long powerful note echoing across a valley"
+  },
+  {
+   "id": "horn_rout",
+   "group": "threats",
+   "files": [
+    "sfx/threats/horn_rout_1.ogg",
+    "sfx/threats/horn_rout_2.ogg"
+   ],
+   "dur": [
+    3.05,
+    4.19
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "hornRout",
+   "prompt": "Medieval horn sounding a desperate retreat, wavering falling notes, cracked and panicked, echoing"
+  },
+  {
+   "id": "horn_alarm",
+   "group": "threats",
+   "files": [
+    "sfx/threats/horn_alarm_1.ogg",
+    "sfx/threats/horn_alarm_2.ogg"
+   ],
+   "dur": [
+    4.48,
+    2.92
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: phase change at the castle",
+   "prompt": "Castle alarm horn, three short urgent blasts from a brass signal horn on the battlements, echoing off stone walls"
+  },
+  {
+   "id": "volley_loose",
+   "group": "threats",
+   "files": [
+    "sfx/threats/volley_loose_1.ogg",
+    "sfx/threats/volley_loose_2.ogg",
+    "sfx/threats/volley_loose_3.ogg"
+   ],
+   "dur": [
+    3.04,
+    1.05,
+    2.42
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "volleyLoose",
+   "prompt": "Eighty longbow archers loosing arrows at once, massed bowstring thrum and snap, the rising whoosh of a cloud of arrows climbing into the sky"
+  },
+  {
+   "id": "arrow_flyby",
+   "group": "threats",
+   "files": [
+    "sfx/threats/arrow_flyby_1.ogg",
+    "sfx/threats/arrow_flyby_2.ogg",
+    "sfx/threats/arrow_flyby_3.ogg",
+    "sfx/threats/arrow_flyby_4.ogg"
+   ],
+   "dur": [
+    1.25,
+    1.47,
+    1.12,
+    1.42
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "arrowWhoosh",
+   "prompt": "Several arrows whistling past very close, fast airy whizzing passes"
+  },
+  {
+   "id": "ballista_crank",
+   "group": "threats",
+   "files": [
+    "sfx/threats/ballista_crank_1.ogg",
+    "sfx/threats/ballista_crank_2.ogg"
+   ],
+   "dur": [
+    2.79,
+    2.66
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: ballista aim tell (world layer)",
+   "prompt": "Large wooden siege ballista being winched tight, ratcheting clicks, creaking rope under tension, straining timber"
+  },
+  {
+   "id": "ballista_fire",
+   "group": "threats",
+   "files": [
+    "sfx/threats/ballista_fire_1.ogg",
+    "sfx/threats/ballista_fire_2.ogg",
+    "sfx/threats/ballista_fire_3.ogg"
+   ],
+   "dur": [
+    2.0,
+    1.55,
+    2.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "boltFire",
+   "prompt": "Large wooden siege ballista firing, heavy torsion ropes snapping forward with a loud timber thwack, bolt whooshing away"
+  },
+  {
+   "id": "bombard_fire",
+   "group": "threats",
+   "files": [
+    "sfx/threats/bombard_fire_1.ogg",
+    "sfx/threats/bombard_fire_2.ogg",
+    "sfx/threats/bombard_fire_3.ogg"
+   ],
+   "dur": [
+    3.37,
+    5.0,
+    5.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "bombardFire",
+   "prompt": "Medieval bombard black powder cannon firing, enormous deep boom, hissing powder smoke, echo slapping off castle walls"
+  },
+  {
+   "id": "flak_burst",
+   "group": "threats",
+   "files": [
+    "sfx/threats/flak_burst_1.ogg",
+    "sfx/threats/flak_burst_2.ogg",
+    "sfx/threats/flak_burst_3.ogg",
+    "sfx/threats/flak_burst_4.ogg"
+   ],
+   "dur": [
+    1.84,
+    1.74,
+    2.0,
+    1.88
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "flak",
+   "prompt": "Airburst explosion close by in mid air, sharp crack and bang, shrapnel whizzing and hissing past"
+  },
+  {
+   "id": "trebuchet_release",
+   "group": "threats",
+   "files": [
+    "sfx/threats/trebuchet_release_1.ogg",
+    "sfx/threats/trebuchet_release_2.ogg",
+    "sfx/threats/trebuchet_release_3.ogg"
+   ],
+   "dur": [
+    3.21,
+    3.42,
+    3.81
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "trebRelease",
+   "prompt": "Giant counterweight trebuchet releasing, deep groaning timber creak, massive counterweight dropping with a thud, sling whipping through the air"
+  },
+  {
+   "id": "boulder_flyby",
+   "group": "threats",
+   "files": [
+    "sfx/threats/boulder_flyby_1.ogg",
+    "sfx/threats/boulder_flyby_2.ogg",
+    "sfx/threats/boulder_flyby_3.ogg"
+   ],
+   "dur": [
+    3.45,
+    3.48,
+    3.47
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "boulderWhoosh",
+   "prompt": "Huge flaming boulder flying past overhead, roaring fire whoosh with doppler shift, crackling flames passing"
+  },
+  {
+   "id": "boulder_impact",
+   "group": "threats",
+   "files": [
+    "sfx/threats/boulder_impact_1.ogg",
+    "sfx/threats/boulder_impact_2.ogg",
+    "sfx/threats/boulder_impact_3.ogg"
+   ],
+   "dur": [
+    3.74,
+    4.72,
+    3.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "boulderImpact",
+   "prompt": "Massive flaming boulder slamming into the earth, deep ground shaking thud, burst of fire, dirt and rocks scattering"
+  },
+  {
+   "id": "firepot_ignite",
+   "group": "threats",
+   "files": [
+    "sfx/threats/firepot_ignite_1.ogg",
+    "sfx/threats/firepot_ignite_2.ogg"
+   ],
+   "dur": [
+    2.41,
+    2.86
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: fire pots lit in phase 3",
+   "prompt": "Large iron pot of oil igniting with a deep whoomph, then roaring flame"
+  },
+  {
+   "id": "army_bed_loop",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/army_bed_loop.ogg"
+   ],
+   "dur": [
+    22.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_crowd",
+   "prompt": "Medieval army of two thousand soldiers standing in formation on an open field, low murmur of many men, armor and chainmail clinking, shields shifting, banners flapping, a far off shouted order, distant perspective",
+   "seam_db": -19.5
+  },
+  {
+   "id": "army_close_loop",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/army_close_loop.ogg"
+   ],
+   "dur": [
+    20.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_crowd (near layer, low altitude)",
+   "prompt": "Close inside a medieval infantry formation, soldiers muttering and shouting, armor and weapons clattering, boots shuffling, nervous tension",
+   "seam_db": -19.2
+  },
+  {
+   "id": "war_chant",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/war_chant_1.ogg",
+    "sfx/crowd/war_chant_2.ogg",
+    "sfx/crowd/war_chant_3.ogg"
+   ],
+   "dur": [
+    4.79,
+    4.83,
+    4.74
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "_crowd 'HAH!' battle-cry",
+   "prompt": "Hundreds of medieval soldiers shouting a short battle cry in unison three times while beating weapons on their shields"
+  },
+  {
+   "id": "shield_wall_up",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/shield_wall_up_1.ogg",
+    "sfx/crowd/shield_wall_up_2.ogg",
+    "sfx/crowd/shield_wall_up_3.ogg"
+   ],
+   "dur": [
+    2.23,
+    2.11,
+    2.43
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: formation raises shields",
+   "prompt": "Hundreds of wooden shields raised and locked together at once, a wave of wood and iron clacking, soldiers grunting"
+  },
+  {
+   "id": "panic_loop",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/panic_loop.ogg"
+   ],
+   "dur": [
+    16.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_panic",
+   "prompt": "Hundreds of medieval soldiers panicking and fleeing, terrified screaming and shouting, running feet, armor clattering, chaos",
+   "seam_db": -20.3
+  },
+  {
+   "id": "rout_stampede",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/rout_stampede_1.ogg",
+    "sfx/crowd/rout_stampede_2.ogg"
+   ],
+   "dur": [
+    5.31,
+    5.92
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: formationRouted",
+   "prompt": "Hundreds of armored men breaking ranks and running away, stampede of boots on dirt, shields and weapons dropped and clattering, shouts fading"
+  },
+  {
+   "id": "cheer_loop",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/cheer_loop.ogg"
+   ],
+   "dur": [
+    11.94
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_cheer",
+   "prompt": "Large medieval army cheering in triumph, continuous roaring cheer of thousands of men, weapons banging on shields",
+   "seam_db": -9.5
+  },
+  {
+   "id": "cheer_burst",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/cheer_burst_1.ogg",
+    "sfx/crowd/cheer_burst_2.ogg",
+    "sfx/crowd/cheer_burst_3.ogg"
+   ],
+   "dur": [
+    4.69,
+    4.5,
+    4.67
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "cheer",
+   "prompt": "Medieval army erupting into a sudden triumphant roar and cheer, swelling then settling"
+  },
+  {
+   "id": "scream_group",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/scream_group_1.ogg",
+    "sfx/crowd/scream_group_2.ogg",
+    "sfx/crowd/scream_group_3.ogg",
+    "sfx/crowd/scream_group_4.ogg"
+   ],
+   "dur": [
+    2.43,
+    2.48,
+    2.48,
+    2.48
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "scream",
+   "prompt": "Several men crying out in pain and terror as an explosion hits them, medieval battlefield, armor clattering as they fall"
+  },
+  {
+   "id": "death_cry",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/death_cry_1.ogg",
+    "sfx/crowd/death_cry_2.ogg",
+    "sfx/crowd/death_cry_3.ogg",
+    "sfx/crowd/death_cry_4.ogg"
+   ],
+   "dur": [
+    1.48,
+    1.48,
+    1.48,
+    1.42
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "scream (single)",
+   "prompt": "Single man shouting out in pain as he is hit and falls, short"
+  },
+  {
+   "id": "war_drums_loop",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/war_drums_loop.ogg"
+   ],
+   "dur": [
+    16.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_drums",
+   "prompt": "Slow ominous medieval war drums, several huge deep drums beating a steady marching pattern outdoors, distant, echoing across a field",
+   "seam_db": -27.1
+  },
+  {
+   "id": "warlord_death",
+   "group": "crowd",
+   "files": [
+    "sfx/crowd/warlord_death_1.ogg",
+    "sfx/crowd/warlord_death_2.ogg"
+   ],
+   "dur": [
+    2.91,
+    2.73
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: warlordDead",
+   "prompt": "Heavily armored warrior giving a final defiant roar, then collapsing to the ground in a crash of plate armor"
+  },
+  {
+   "id": "valley_wind_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/valley_wind_loop.ogg"
+   ],
+   "dur": [
+    20.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "base valley wind",
+   "prompt": "Steady wind blowing across a wide open valley at dusk, soft gusts through grass, natural and calm, no birds",
+   "seam_db": -33.2
+  },
+  {
+   "id": "fire_large_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/fire_large_loop.ogg"
+   ],
+   "dur": [
+    15.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "_fire",
+   "prompt": "Large fire burning, deep roaring flames, crackling and popping timber, constant",
+   "seam_db": -19.2
+  },
+  {
+   "id": "fire_small_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/fire_small_loop.ogg"
+   ],
+   "dur": [
+    10.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: single emitter, positional",
+   "prompt": "Campfire sized flames crackling and popping steadily, close",
+   "seam_db": -17.8
+  },
+  {
+   "id": "village_alarm_bell",
+   "group": "world",
+   "files": [
+    "sfx/world/village_alarm_bell_1.ogg",
+    "sfx/world/village_alarm_bell_2.ogg"
+   ],
+   "dur": [
+    7.0,
+    7.0
+   ],
+   "loop": false,
+   "channels": 1,
+   "positional": true,
+   "hook": "new: village, first attack",
+   "prompt": "Medieval village church bell ringing frantically as an alarm, fast uneven clanging, echoing"
+  },
+  {
+   "id": "river_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/river_loop.ogg"
+   ],
+   "dur": [
+    15.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: near the river",
+   "prompt": "Wide shallow river flowing steadily over stones, gentle rushing water",
+   "seam_db": -28.7
+  },
+  {
+   "id": "dusk_insects_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/dusk_insects_loop.ogg"
+   ],
+   "dur": [
+    19.94
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: fades in with night",
+   "prompt": "Quiet countryside at nightfall, crickets and night insects, a light breeze",
+   "seam_db": 1.3
+  },
+  {
+   "id": "banner_flap_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/banner_flap_loop.ogg"
+   ],
+   "dur": [
+    8.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: near banners / rotor wash",
+   "prompt": "Large heavy cloth banners whipping and snapping hard in a strong wind, constant",
+   "seam_db": -32.3
+  },
+  {
+   "id": "camp_amb_loop",
+   "group": "world",
+   "files": [
+    "sfx/world/camp_amb_loop.ogg"
+   ],
+   "dur": [
+    20.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: main menu bed",
+   "prompt": "Distant medieval army camp at dusk heard from a hillside, faint voices, a hammer on an anvil, horses, a low drum, wind",
+   "seam_db": -28.3
+  },
+  {
+   "id": "radio_in",
+   "group": "ui",
+   "files": [
+    "sfx/ui/radio_in_1.ogg",
+    "sfx/ui/radio_in_2.ogg"
+   ],
+   "dur": [
+    0.48,
+    0.45
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: before a radio line (also baked into vo)",
+   "prompt": "Military radio transmission starting, short squelch click and burst of static"
+  },
+  {
+   "id": "radio_out",
+   "group": "ui",
+   "files": [
+    "sfx/ui/radio_out_1.ogg",
+    "sfx/ui/radio_out_2.ogg"
+   ],
+   "dur": [
+    0.48,
+    0.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: after a radio line (also baked into vo)",
+   "prompt": "Military radio transmission ending, short static burst and squelch tail click"
+  },
+  {
+   "id": "radio_static_loop",
+   "group": "ui",
+   "files": [
+    "sfx/ui/radio_static_loop.ogg"
+   ],
+   "dur": [
+    8.0
+   ],
+   "loop": true,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: under long radio lines / menu",
+   "prompt": "Faint military radio static and hiss with quiet garbled interference, constant",
+   "seam_db": -16.4
+  },
+  {
+   "id": "ui_confirm",
+   "group": "ui",
+   "files": [
+    "sfx/ui/ui_confirm_1.ogg",
+    "sfx/ui/ui_confirm_2.ogg"
+   ],
+   "dur": [
+    0.49,
+    0.58
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "uiClick",
+   "prompt": "Military avionics button press, solid tactile click with a short low electronic confirm tone"
+  },
+  {
+   "id": "ui_hover",
+   "group": "ui",
+   "files": [
+    "sfx/ui/ui_hover_1.ogg",
+    "sfx/ui/ui_hover_2.ogg"
+   ],
+   "dur": [
+    0.48,
+    0.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "uiHover",
+   "prompt": "Very short soft electronic tick, subtle interface highlight"
+  },
+  {
+   "id": "ui_back",
+   "group": "ui",
+   "files": [
+    "sfx/ui/ui_back.ogg"
+   ],
+   "dur": [
+    0.6
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: back / cancel",
+   "prompt": "Military avionics button press, tactile click with a short descending electronic tone"
+  },
+  {
+   "id": "mfd_boot",
+   "group": "ui",
+   "files": [
+    "sfx/ui/mfd_boot.ogg"
+   ],
+   "dur": [
+    3.0
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: menu to game transition",
+   "prompt": "Cockpit multifunction display powering on, electronic chirps and rising hum, avionics fans spooling up, final ready beep"
+  },
+  {
+   "id": "title_impact",
+   "group": "ui",
+   "files": [
+    "sfx/ui/title_impact_1.ogg",
+    "sfx/ui/title_impact_2.ogg"
+   ],
+   "dur": [
+    3.15,
+    2.91
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "phase banner / title card",
+   "prompt": "Cinematic deep impact with a dark low whoosh and a long sub bass tail, trailer hit"
+  },
+  {
+   "id": "score_tally",
+   "group": "ui",
+   "files": [
+    "sfx/ui/score_tally.ogg"
+   ],
+   "dur": [
+    2.48
+   ],
+   "loop": false,
+   "channels": 2,
+   "positional": false,
+   "hook": "new: results screen",
+   "prompt": "Fast electronic counter ticking upward, ending with a solid confirmation tone"
+  }
+ ],
+ "music": [
+  {
+   "id": "mus_menu",
+   "file": "music/mus_menu.ogg",
+   "dur": 90.03,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "main menu",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Main menu theme. Slow, brooding and majestic, golden hour before a battle. A lonely hurdy-gurdy melody over a deep synth drone, distant war drums, a low wordless male choir swelling in and out. D minor, 60 BPM. Starts quietly, builds to a restrained swell, settles back so it can loop.",
+   "loop_file": "music/mus_menu_loop.ogg",
+   "loop_dur": 77.99,
+   "loop_src_start": 4.91,
+   "loop_src_end": 82.9,
+   "loop_match": 0.909,
+   "intro_note": "play mus_menu.ogg from 0 and it reaches the loop body at 4.91s; or start mus_menu_loop.ogg directly"
+  },
+  {
+   "id": "mus_approach",
+   "file": "music/mus_approach.ogg",
+   "dur": 59.24,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "phase 0: approach behind the hill",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Tension build for a low altitude approach before combat. Pulsing synth ostinato, ticking percussion, muted low strings, restrained and anticipatory, no big hits, steadily rising pressure. D minor, 120 BPM. Sparse midrange so engine sounds and radio voices stay clear.",
+   "loop_file": "music/mus_approach_loop.ogg",
+   "loop_dur": 52.0,
+   "loop_src_start": 4.14,
+   "loop_src_end": 56.14,
+   "loop_match": 0.781,
+   "intro_note": "play mus_approach.ogg from 0 and it reaches the loop body at 4.14s; or start mus_approach_loop.ogg directly"
+  },
+  {
+   "id": "mus_reveal",
+   "file": "music/mus_reveal.ogg",
+   "dur": 15.04,
+   "lufs": -16.0,
+   "loop": false,
+   "hook": "ridge crest: the army is revealed (with cmd_reveal)",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Short reveal stinger. One massive orchestral hit with war horns, choir and thunderous war drums as an enormous army comes into view, a grand ominous chord that holds, then decays into a long dark tail. D minor."
+  },
+  {
+   "id": "mus_combat_1",
+   "file": "music/mus_combat_1.ogg",
+   "dur": 98.78,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "phase 1: break the field army",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Combat music, medium intensity. Driving war drums and staccato low strings over a distorted synth bass pulse, hurdy-gurdy riff, short horn calls. Confident and predatory, a hunter over open ground. D minor, 120 BPM, steady groove from the first bar, no long intro, consistent energy throughout so it loops.",
+   "loop_file": "music/mus_combat_1_loop.ogg",
+   "loop_dur": 43.87,
+   "loop_src_start": 22.83,
+   "loop_src_end": 66.7,
+   "loop_match": 0.822,
+   "intro_note": "play mus_combat_1.ogg from 0 and it reaches the loop body at 22.83s; or start mus_combat_1_loop.ogg directly"
+  },
+  {
+   "id": "mus_combat_2",
+   "file": "music/mus_combat_2.ogg",
+   "dur": 99.93,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "phase 2: silence the walls",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Combat music, high intensity. Heavier and more aggressive: pounding war drums, anvil hits, snarling brass, relentless distorted synth bass, fast string ostinato. A siege under heavy fire. D minor, 120 BPM, full energy from the first bar, no long intro, consistent energy throughout so it loops.",
+   "loop_file": "music/mus_combat_2_loop.ogg",
+   "loop_dur": 56.02,
+   "loop_src_start": 17.19,
+   "loop_src_end": 73.21,
+   "loop_match": 0.86,
+   "intro_note": "play mus_combat_2.ogg from 0 and it reaches the loop body at 17.19s; or start mus_combat_2_loop.ogg directly"
+  },
+  {
+   "id": "mus_combat_3",
+   "file": "music/mus_combat_3.ogg",
+   "dur": 120.01,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "phase 3: kill the warlord (dusk)",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Final battle music, maximum intensity. Full wordless male choir chanting, relentless war drums, screaming brass, driving distorted synth bass and frantic strings. Desperate, epic and dark, a duel at nightfall lit by fire. D minor, 120 BPM, full energy from the first bar, consistent energy throughout so it loops.",
+   "loop_file": "music/mus_combat_3_loop.ogg",
+   "loop_dur": 87.02,
+   "loop_src_start": 23.72,
+   "loop_src_end": 110.74,
+   "loop_match": 0.784,
+   "intro_note": "play mus_combat_3.ogg from 0 and it reaches the loop body at 23.72s; or start mus_combat_3_loop.ogg directly"
+  },
+  {
+   "id": "mus_lull",
+   "file": "music/mus_lull.ogg",
+   "dur": 75.01,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "flying to the rearm pad / on the pad / limping home",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Low intensity tension underscore between fights. Deep drones, a slow heartbeat pulse, sparse distant drum hits, uneasy sustained strings, a faint hurdy-gurdy phrase. Quiet and watchful. D minor, 60 BPM, no melody in the foreground, even dynamics so it loops.",
+   "loop_file": "music/mus_lull_loop.ogg",
+   "loop_dur": 59.5,
+   "loop_src_start": 8.75,
+   "loop_src_end": 68.24,
+   "loop_match": 0.921,
+   "intro_note": "play mus_lull.ogg from 0 and it reaches the loop body at 8.75s; or start mus_lull_loop.ogg directly"
+  },
+  {
+   "id": "mus_phase_sting",
+   "file": "music/mus_phase_sting.ogg",
+   "dur": 11.05,
+   "lufs": -16.0,
+   "loop": false,
+   "hook": "phase change (replaces the synth 'phase' sting)",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Short transition stinger. Two huge war drum hits, a rising dark brass swell and choir, ending on a held ominous chord that fades. D minor."
+  },
+  {
+   "id": "mus_victory",
+   "file": "music/mus_victory.ogg",
+   "dur": 29.74,
+   "lufs": -16.0,
+   "loop": false,
+   "hook": "mission.win()",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Victory cue. A triumphant but weary brass and choir fanfare over rolling war drums, the hurdy-gurdy theme resolving to D major, ending on a long warm final chord."
+  },
+  {
+   "id": "mus_defeat",
+   "file": "music/mus_defeat.ogg",
+   "dur": 21.75,
+   "lufs": -16.0,
+   "loop": false,
+   "hook": "mission.lose()",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Defeat cue. A falling, mournful low brass and cello line over one slow funeral drum, a dark choir chord, fading into a hollow drone. D minor, slow."
+  },
+  {
+   "id": "mus_results",
+   "file": "music/mus_results.ogg",
+   "dur": 59.43,
+   "lufs": -16.0,
+   "loop": true,
+   "hook": "results / debrief screen",
+   "prompt": "Hybrid cinematic game score where a medieval war band collides with modern military electronics: huge war drums, frame drums, hurdy-gurdy, low wordless male choir and war horns against distorted synth bass pulses, ticking hi-tech percussion and deep braams. Instrumental, no lyrics. Quiet reflective aftermath. A soft solo hurdy-gurdy and low strings reprise of the main theme over a warm drone, distant single drum, calm and spacious. D minor, 60 BPM, even dynamics so it loops.",
+   "loop_file": "music/mus_results_loop.ogg",
+   "loop_dur": 48.0,
+   "loop_src_start": 4.01,
+   "loop_src_end": 52.01,
+   "loop_match": 0.926,
+   "intro_note": "play mus_results.ogg from 0 and it reaches the loop body at 4.01s; or start mus_results_loop.ogg directly"
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+<!doctype html><html><body><pre id=o>running</pre><script type="module">
+// Level calibration for the sample bank: decoded rates / resident PCM, momentary loudness of each sample vs the synth
+// recipe it replaces, and loop-layer energy in rendered graph states. Logs to /__log (tools/shot.sh-style runner).
+import { audio } from '../../src/audio.js';
+const out = []; let chain = Promise.resolve(); const log = (s) => { out.push(s); chain = chain.then(() => fetch('/__log', { method: 'POST', body: s })); return chain; };
+const db = (x) => (20 * Math.log10(Math.max(x, 1e-9))).toFixed(1);
+// max RMS over 400 ms windows (100 ms hop), channels averaged: a momentary-loudness proxy
+function ml(b, gain = 1) {
+  const n = b.length, ch = b.numberOfChannels, sr = b.sampleRate, W = Math.round(0.4 * sr), H = Math.round(0.1 * sr), d = [];
+  for (let c = 0; c < ch; c++) d.push(b.getChannelData(c));
+  let best = 0;
+  for (let s = 0; s + 1 < Math.max(1, n - W); s += H) { let sq = 0; const e = Math.min(n, s + W); for (let i = s; i < e; i++) { let v = 0; for (let c = 0; c < ch; c++) v += d[c][i]; v /= ch; sq += v * v; } best = Math.max(best, Math.sqrt(sq / (e - s))); }
+  if (n <= W) { let sq = 0; for (let i = 0; i < n; i++) { let v = 0; for (let c = 0; c < ch; c++) v += d[c][i]; v /= ch; sq += v * v; } best = Math.sqrt(sq / n); }
+  return best * gain;
+}
+function rms(b, from = 0) { const d = b.getChannelData(0); let sq = 0; for (let i = from; i < d.length; i++) sq += d[i] * d[i]; return Math.sqrt(sq / (d.length - from)); }
+try {
+  audio.load(); const t0 = performance.now();
+  while (!audio.bank.man || audio.bank.autoLeft > 0) { await new Promise(r => setTimeout(r, 250)); if (performance.now() - t0 > 90000) break; }
+  const bk = audio.bank; log(`LV bank: files=${bk.files} MB=${(bk.bytes / 1e6).toFixed(1)} pcmMB=${(bk.pcm / 1e6).toFixed(0)} fails=${bk.fails.join(',')} t=${((performance.now() - t0) / 1000).toFixed(1)}s`);
+  const per = {};
+  for (const id of Object.keys(bk.man.sfx.concat(bk.man.vo, bk.man.music).reduce((a, e) => (a[e.id] = 1, a), {}))) {
+    const e = audio._smp(id); if (!e || !e.bufs) continue;
+    for (const b of e.bufs) { const k = e.kind + '@' + b.sampleRate; per[k] = per[k] || { n: 0, mb: 0 }; per[k].n++; per[k].mb += b.length * b.numberOfChannels * 4 / 1e6; }
+  }
+  log('LV pcm by kind@rate: ' + Object.entries(per).map(([k, v]) => `${k} n=${v.n} ${v.mb.toFixed(0)}MB`).join(' | '));
+  const pairs = [['cannon', 'cannon_shot'], ['cannonImpact', 'cannon_impact_dirt'], ['cannonImpact', 'cannon_impact_stone'], ['rocket', 'rocket_launch'], ['missile', 'missile_launch'], ['flare', 'flare_dispense'],
+    ['explSmall', 'expl_small'], ['explMedium', 'expl_medium'], ['explLarge', 'expl_large'], ['explMedium', 'expl_distant'], ['explSmall', 'expl_water'], ['collapse', 'tower_collapse'], ['collapse', 'wall_breach'], ['debris', 'debris_rain'],
+    ['weaponSwitch', 'weapon_select'], ['dryFire', 'dry_fire'], ['jam', 'cannon_jam'], ['overheat', 'cannon_overheat_hiss'], ['rearmTick', 'rearm_load'], ['repairDone', 'repair_tool'], ['touchdown', 'touchdown'],
+    ['arrowHit', 'arrow_hull_hit'], ['arrowHit', 'arrow_volley_hull'], ['boltHit', 'bolt_hull_hit'], ['boltPass', 'bolt_pass'], ['hullHit', 'hull_hit_heavy'], ['glassCrack', 'glass_crack'], ['rotorStrike', 'rotor_strike'],
+    ['crashSpin', 'crash_spin'], ['crash', 'crash_impact'], ['horn', 'war_horn'], ['hornRout', 'horn_rout'], ['volleyLoose', 'volley_loose'], ['arrowWhoosh', 'arrow_flyby'], ['boltFire', 'ballista_fire'],
+    ['bombardFire', 'bombard_fire'], ['flak', 'flak_burst'], ['trebRelease', 'trebuchet_release'], ['boulderWhoosh', 'boulder_flyby'], ['boulderImpact', 'boulder_impact'], ['scream', 'scream_group'], ['scream', 'death_cry'],
+    ['cheer', 'cheer_burst'], ['uiClick', 'ui_confirm'], ['uiHover', 'ui_hover'], ['uiBack', 'ui_back'], ['phase', 'title_impact'], ['cannon', 'cannon_burst'], ['cannon', 'cannon_tail']];
+  const synthML = {};
+  for (const [r, id] of pairs) {
+    const rec = audio._rec(r); if (!rec) continue;
+    if (synthML[r] === undefined) { let s = 0; for (let i = 0; i < 2; i++) s += ml(await audio._render(r, 48000), rec.lvl); synthML[r] = s / 2; }
+    const e = audio._smp(id), sp = audio._sp(id); if (!e || !e.bufs || !sp) { log(`LV ${id} missing`); continue; }
+    let s = 0; for (const b of e.bufs) s += ml(b, sp.lvl); s /= e.bufs.length;
+    const sug = sp.lvl * synthML[r] / s;
+    log(`LV hook ${r.padEnd(13)} synth=${db(synthML[r])}dB  ${id.padEnd(20)} sample=${db(s)}dB  diff=${db(s / synthML[r])}dB  lvl ${sp.lvl} -> match ${sug.toFixed(2)}`);
+  }
+  // loop beds: synth loop rms vs sample loop rms (CAL suggestion keeps the level the mix was built around)
+  for (const [syn, id, key] of [['_crowd', 'army_bed_loop', 'bed'], ['_panic', 'panic_loop', 'panic'], ['_cheer', 'cheer_loop', 'cheer'], ['_drums', 'war_drums_loop', 'drums'], ['_fire', 'fire_large_loop', 'fireL'], ['_crowd', 'army_close_loop', 'close']]) {
+    const sb = await audio._render(syn, 48000), e = audio._smp(id); if (!e || !e.bufs) continue;
+    const a = rms(sb) * (syn === '_crowd' ? 1.4 : 1), b = rms(e.bufs[0]);   // the synth bed is played twice (second detuned layer x0.7)
+    log(`LV loop ${syn.padEnd(7)} rms=${db(a)}dB  ${id.padEnd(18)} rms=${db(b)}dB  CAL.${key} ${audio._cal[key]} -> match ${(a / b).toFixed(2)}`);
+  }
+  // rendered states: energy of the recorded layers vs the synth core
+  const C = audio._cal, save = { ...C };
+  const st = async (s, label, zero) => { for (const k of zero) C[k] = 0; const b = await audio._renderState(s, 3.5, 48000); Object.assign(C, save); return rms(b, 48000 * 1.5); };
+  const base = { active: true, rotorRPM: 1, rotorLoad: 0.5, speed: 10 };
+  const all = ['rext', 'rint', 'turb', 'slap', 'rdmg', 'edmg', 'rattle', 'slip', 'wash', 'valley', 'river', 'insects', 'banner', 'camp'];
+  const synthOnly = await st(base, 'synth', all);
+  for (const [k, s] of [['rext', base], ['turb', base], ['slap', { ...base, rotorLoad: 1, speed: 60 }], ['slip', { ...base, speed: 60 }], ['rint', { ...base, cockpit: true }], ['rdmg', { ...base, dmgRotor: 1 }], ['edmg', { ...base, dmgEngine: 1 }], ['valley', { active: false }]]) {
+    const ref = await st(s, 'ref', all), wth = await st(s, k, all.filter(x => x !== k));
+    const layer = Math.sqrt(Math.max(0, wth * wth - ref * ref));
+    log(`LV state layer ${k.padEnd(7)} synthCore=${db(ref)}dB layer=${db(layer)}dB rel=${db(layer / ref)}dB (CAL ${save[k]})`);
+  }
+  log(`LV synth hover rms=${db(synthOnly)}dB`);
+} catch (e) { log('LV ERROR ' + e + ' ' + (e.stack || '')); }
+for (const id of ['rotor_ext_loop', 'rotor_int_loop', 'turbine_loop', 'blade_slap_loop', 'rotor_damaged_loop', 'engine_damaged_loop', 'cockpit_rattle_loop', 'wind_slipstream_loop', 'rotor_wash_loop', 'valley_wind_loop', 'river_loop', 'dusk_insects_loop', 'banner_flap_loop', 'camp_amb_loop', 'fire_small_loop', 'radio_static_loop']) { const e = audio._smp(id); log(`LV looprms ${id} ${e && e.bufs ? db(rms(e.bufs[0])) + 'dB st=' + e.st : 'st=' + (e && e.st)}`); }
+await log('DONE');
+</script></body></html>

@@ -1,0 +1,103 @@
+== Arrow tris=17 size_three(x,y,z)=(0.09,0.09,0.80) three_y=[-0.05..0.05] three_z=[-0.40..0.40] mats=['Wood'] vcol=True
+  Arrow__Wood [MESH]
+== Ballista tris=2076 size_three(x,y,z)=(3.28,2.04,3.41) three_y=[0.00..2.04] three_z=[-1.91..1.50] mats=['Iron', 'Rope', 'Wood'] vcol=True
+  Ballista_Yaw [EMPTY] loc(blender)=(0.00,0.00,1.16) rotX=0.0deg
+    Ballista_Pitch [EMPTY] loc(blender)=(0.00,0.00,0.39) rotX=0.0deg
+      Ballista_Bolt [EMPTY] loc(blender)=(0.00,-1.25,0.19) rotX=0.0deg
+      Ballista_LoadedBolt [EMPTY] loc(blender)=(0.00,-0.35,0.19) rotX=0.0deg
+== BannerPole tris=1148 size_three(x,y,z)=(1.64,6.45,1.20) three_y=[-0.07..6.38] three_z=[-0.60..0.60] mats=['Iron', 'Rope', 'Stone', 'Wood'] vcol=True
+  BannerPole__Iron [MESH]
+  BannerPole__Rope [MESH]
+  BannerPole__Stone [MESH]
+  BannerPole__Wood [MESH]
+  Banner_Attach [EMPTY] loc(blender)=(0.00,-0.07,5.55) rotX=0.0deg
+== Barrels tris=2544 size_three(x,y,z)=(2.07,1.41,1.81) three_y=[-0.01..1.40] three_z=[-0.94..0.87] mats=['Iron', 'Wood'] vcol=True
+  Barrels__Iron [MESH]
+  Barrels__Wood [MESH]
+== Bolt tris=88 size_three(x,y,z)=(0.19,0.17,1.80) three_y=[-0.11..0.06] three_z=[-0.90..0.90] mats=['Iron', 'Wood'] vcol=True
+  Bolt__Iron [MESH]
+  Bolt__Wood [MESH]
+== Bombard tris=3888 size_three(x,y,z)=(3.25,1.56,4.80) three_y=[-0.07..1.50] three_z=[-3.18..1.62] mats=['Cloth', 'Iron', 'Rope', 'Stone', 'Wood'] vcol=True
+  Bombard_Pitch [EMPTY] loc(blender)=(0.00,0.20,1.00) rotX=0.0deg
+    Bombard_Muzzle [EMPTY] loc(blender)=(0.00,-1.56,0.04) rotX=0.0deg
+    Bombard_Pitch__Iron [MESH]
+    Bombard_Pitch__Rope [MESH]
+    Bombard_Pitch__Wood [MESH]
+  Bombard__Cloth [MESH]
+  Bombard__Iron [MESH]
+  Bombard__Stone [MESH]
+  Bombard__Wood [MESH]
+== Boulder tris=320 size_three(x,y,z)=(1.06,1.04,1.05) three_y=[-0.49..0.55] three_z=[-0.52..0.53] mats=['Stone'] vcol=True
+  Boulder__Stone [MESH]
+== Campfire tris=1740 size_three(x,y,z)=(3.23,1.28,3.79) three_y=[-0.06..1.23] three_z=[-1.92..1.87] mats=['Iron', 'Stone', 'Wood'] vcol=True
+  Campfire__Iron [MESH]
+  Campfire__Stone [MESH]
+  Campfire__Wood [MESH]
+== Cart tris=3080 size_three(x,y,z)=(1.96,1.56,4.44) three_y=[-0.01..1.55] three_z=[-1.34..3.10] mats=['Cloth', 'Iron', 'Wood'] vcol=True
+  Cart__Cloth [MESH]
+  Cart__Iron [MESH]
+  Cart__Wood [MESH]
+== Crates tris=1420 size_three(x,y,z)=(2.48,1.28,1.72) three_y=[-0.06..1.21] three_z=[-0.50..1.22] mats=['Cloth', 'Rope', 'Wood'] vcol=True
+  Crates__Cloth [MESH]
+  Crates__Rope [MESH]
+  Crates__Wood [MESH]
+== FirePot tris=1524 size_three(x,y,z)=(1.17,1.23,1.08) three_y=[-0.01..1.23] three_z=[-0.47..0.61] mats=['Iron', 'Stone'] vcol=True
+  FirePot_Top [EMPTY] loc(blender)=(0.00,0.00,1.12) rotX=0.0deg
+  FirePot__Iron [MESH]
+  FirePot__Stone [MESH]
+== Haystack tris=752 size_three(x,y,z)=(4.43,3.63,4.67) three_y=[-0.03..3.60] three_z=[-2.15..2.52] mats=['Iron', 'Rope', 'Wood'] vcol=True
+  Haystack__Iron [MESH]
+  Haystack__Rope [MESH]
+  Haystack__Wood [MESH]
+== Pad_Crates tris=2248 size_three(x,y,z)=(3.89,1.25,2.81) three_y=[-0.09..1.16] three_z=[-1.15..1.67] mats=['Iron', 'Paint', 'Rope', 'Wood'] vcol=True
+  Pad_Crates__Iron [MESH]
+  Pad_Crates__Paint [MESH]
+  Pad_Crates__Rope [MESH]
+  Pad_Crates__Wood [MESH]
+== Pad_Generator tris=1104 size_three(x,y,z)=(2.13,4.12,2.03) three_y=[0.00..4.12] three_z=[-1.08..0.95] mats=['PadLightEmissive', 'Paint'] vcol=True
+  Pad_Generator__PadLightEmissive [MESH]
+  Pad_Generator__Paint [MESH]
+== Pad_Light tris=296 size_three(x,y,z)=(0.30,0.30,0.29) three_y=[0.00..0.30] three_z=[-0.14..0.14] mats=['Iron', 'PadLightEmissive', 'Paint'] vcol=True
+  Pad_Light__Iron [MESH]
+  Pad_Light__PadLightEmissive [MESH]
+  Pad_Light__Paint [MESH]
+== Pad_Truck tris=4192 size_three(x,y,z)=(2.81,3.30,7.29) three_y=[0.00..3.30] three_z=[-3.60..3.70] mats=['Paint'] vcol=True
+  Pad_Truck__Paint [MESH]
+== Palisade tris=1052 size_three(x,y,z)=(4.02,3.89,2.09) three_y=[-0.06..3.83] three_z=[-1.91..0.18] mats=['Rope', 'Wood'] vcol=True
+  Palisade__Rope [MESH]
+  Palisade__Wood [MESH]
+== Pavise tris=1064 size_three(x,y,z)=(0.84,1.63,0.95) three_y=[-0.11..1.52] three_z=[-0.80..0.16] mats=['Iron', 'Paint', 'Rope', 'Wood'] vcol=True
+  Pavise__Iron [MESH]
+  Pavise__Paint [MESH]
+  Pavise__Rope [MESH]
+  Pavise__Wood [MESH]
+== Stakes tris=892 size_three(x,y,z)=(3.80,1.88,2.18) three_y=[-0.03..1.84] three_z=[-1.09..1.09] mats=['Iron', 'Rope', 'Wood'] vcol=True
+  Stakes__Iron [MESH]
+  Stakes__Rope [MESH]
+  Stakes__Wood [MESH]
+== Tent_A tris=664 size_three(x,y,z)=(4.94,2.38,7.14) three_y=[-0.06..2.32] three_z=[-3.57..3.57] mats=['Cloth', 'Rope', 'Wood'] vcol=True
+  Tent_A__Cloth [MESH]
+  Tent_A__Rope [MESH]
+  Tent_A__Wood [MESH]
+== Tent_B tris=2022 size_three(x,y,z)=(10.61,6.26,9.19) three_y=[-0.06..6.20] three_z=[-5.31..3.89] mats=['Cloth', 'Iron', 'Rope', 'Wood'] vcol=True
+  Tent_B__Cloth [MESH]
+  Tent_B__Iron [MESH]
+  Tent_B__Rope [MESH]
+  Tent_B__Wood [MESH]
+== Trebuchet tris=5100 size_three(x,y,z)=(8.20,10.28,11.03) three_y=[-0.07..10.21] three_z=[-5.83..5.20] mats=['Cloth', 'Iron', 'Rope', 'Stone', 'Wood'] vcol=True
+  Treb_Arm [EMPTY] loc(blender)=(0.00,0.00,8.00) rotX=-50.0deg
+    Treb_CW [EMPTY] loc(blender)=(0.00,-2.50,0.00) rotX=50.0deg
+    Treb_Sling [EMPTY] loc(blender)=(0.00,8.80,0.08) rotX=0.0deg
+    Treb_SlingMesh [EMPTY] loc(blender)=(0.00,8.80,0.08) rotX=-35.0deg
+      Treb_LoadedBoulder [EMPTY] loc(blender)=(0.00,0.00,-4.00) rotX=0.0deg
+== WeaponRack tris=2040 size_three(x,y,z)=(2.80,2.58,1.65) three_y=[-0.01..2.57] three_z=[-0.82..0.84] mats=['Iron', 'Paint', 'Rope', 'Wood'] vcol=True
+  WeaponRack__Iron [MESH]
+  WeaponRack__Paint [MESH]
+  WeaponRack__Rope [MESH]
+  WeaponRack__Wood [MESH]
+== Windsock tris=588 size_three(x,y,z)=(0.87,6.48,2.91) three_y=[0.00..6.48] three_z=[-0.24..2.67] mats=['Cloth', 'Iron', 'Paint'] vcol=True
+  Windsock_Sock [EMPTY] loc(blender)=(0.00,0.00,6.05) rotX=0.0deg
+    Windsock_Sock__Cloth [MESH]
+    Windsock_Sock__Iron [MESH]
+  Windsock__Iron [MESH]
+  Windsock__Paint [MESH]

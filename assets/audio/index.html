@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Siege Wing — audio audition</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#14120f; --panel:#1e1b17; --line:#35302a; --ink:#e9e2d6; --dim:#9a9082; --acc:#e0a040; --on:#ffcf70; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 ui-monospace,Menlo,Consolas,monospace; }
+  header { position:sticky; top:0; z-index:2; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  h1 { font-size:15px; margin:0 12px 0 0; letter-spacing:.12em; color:var(--acc); }
+  nav a { color:var(--dim); margin-right:10px; text-decoration:none; } nav a:hover { color:var(--ink); }
+  input[type=search] { background:var(--panel); border:1px solid var(--line); color:var(--ink); padding:6px 8px; font:inherit; min-width:180px; flex:1; max-width:320px; }
+  button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); padding:4px 9px; cursor:pointer; border-radius:3px; }
+  button:hover { border-color:var(--acc); } button.on { background:var(--acc); color:#201808; border-color:var(--on); }
+  main { padding:8px 16px 80px; max-width:1100px; }
+  h2 { font-size:13px; letter-spacing:.14em; color:var(--acc); margin:26px 0 6px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  .row { display:grid; grid-template-columns:minmax(150px,230px) 1fr; gap:4px 14px; padding:7px 0; border-bottom:1px solid #26221d; }
+  .id { color:var(--on); overflow-wrap:anywhere; } .meta { color:var(--dim); font-size:12px; } .txt { margin:2px 0 4px; }
+  .btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:3px; }
+  @media (max-width:640px) { .row { grid-template-columns:1fr; } }
+</style>
+<header>
+  <h1>SIEGE WING AUDIO</h1>
+  <nav id="nav"></nav>
+  <input id="q" type="search" placeholder="filter…">
+  <button id="stop">■ stop all</button>
+</header>
+<main id="main">Loading manifest.json… (open this page through tools/serve.py, not file://)</main>
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const cache = new Map(), playing = new Set();
+async function buf(url) { if (!cache.has(url)) cache.set(url, fetch(url).then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a))); return cache.get(url); }
+async function play(url, btn, { loop = false, seam = false } = {}) {
+  if (btn._src) { btn._src.stop(); return; }
+  await ctx.resume(); const b = await buf(url), s = ctx.createBufferSource();
+  s.buffer = b; s.loop = loop || seam; s.connect(ctx.destination);
+  s.start(0, seam ? Math.max(0, b.duration - 4) : 0);   // "seam" starts 4 s before the wrap point
+  btn._src = s; btn.classList.add('on'); playing.add(s);
+  s.onended = () => { btn._src = null; btn.classList.remove('on'); playing.delete(s); };
+}
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.textContent = h; return e; };
+function row(id, meta, text, buttons) {
+  const r = el('div', 'row'), a = el('div'), b = el('div'); r.dataset.k = (id + ' ' + meta + ' ' + (text || '')).toLowerCase();
+  a.append(el('div', 'id', id), el('div', 'meta', meta));
+  if (text) b.append(el('div', 'txt', text));
+  const bs = el('div', 'btns');
+  for (const [label, url, opt] of buttons) { const x = el('button', '', label); x.onclick = () => play(url, x, opt); bs.append(x); }
+  b.append(bs); r.append(a, b); return r;
+}
+function section(main, nav, title) { const h = el('h2', '', title); h.id = title.replace(/\W+/g, '-'); main.append(h); const a = el('a', '', title.split(' — ')[0].toLowerCase()); a.href = '#' + h.id; nav.append(a); }
+fetch('manifest.json').then(r => r.json()).then(m => {
+  const main = document.getElementById('main'), nav = document.getElementById('nav'); main.textContent = '';
+  section(main, nav, 'MUSIC — ' + m.levels.music);
+  for (const t of m.music) {
+    const bt = [['▶ full ' + t.dur + 's', t.file]];
+    if (t.loop_file) bt.push(['∞ loop ' + t.loop_dur + 's', t.loop_file, { loop: true }], ['⟲ hear the loop seam', t.loop_file, { seam: true }]);
+    main.append(row(t.id, t.hook + (t.loop_match ? ' · loop match ' + t.loop_match : ''), '', bt));
+  }
+  const speakers = [...new Set(m.vo.map(v => v.fx === 'dry' ? 'enemy' : v.speaker))];
+  for (const sp of speakers) {
+    const lines = m.vo.filter(v => (v.fx === 'dry' ? 'enemy' : v.speaker) === sp);
+    section(main, nav, 'VO ' + sp.toUpperCase() + ' — ' + lines.length + ' lines');
+    for (const v of lines) {
+      const alts = m.casting.filter(c => c.line === v.id).map(c => ['alt: ' + c.voice, c.file]);
+      main.append(row(v.id, v.voice + ' · ' + v.dur + 's · ' + v.event, '“' + v.text + '”', [['▶ ' + v.voice, v.file], ...alts]));
+    }
+  }
+  for (const g of [...new Set(m.sfx.map(s => s.group))]) {
+    const list = m.sfx.filter(s => s.group === g);
+    section(main, nav, 'SFX ' + g.toUpperCase() + ' — ' + list.length + ' sounds');
+    for (const s of list) main.append(row(s.id, (s.loop ? 'loop · ' : '') + (s.positional ? 'mono/positional' : 'stereo') + ' · ' + s.hook, s.prompt,
+      s.files.map((f, i) => [(s.loop ? '∞ ' : '▶ ') + (s.files.length > 1 ? i + 1 : 'play') + ' · ' + s.dur[i] + 's', f, { loop: s.loop }])));
+  }
+  document.getElementById('q').oninput = e => { const q = e.target.value.toLowerCase(); for (const r of document.querySelectorAll('.row')) r.style.display = r.dataset.k.includes(q) ? '' : 'none'; };
+  document.getElementById('stop').onclick = () => { for (const s of [...playing]) s.stop(); };
+}).catch(e => { document.getElementById('main').textContent = 'Could not load manifest.json: ' + e; });
+</script>

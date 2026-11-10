@@ -1,0 +1,314 @@
+{
+ "House_A": {
+  "tris": 2022,
+  "mats": [
+   "Stone",
+   "Plaster",
+   "Timber",
+   "Thatch"
+  ],
+  "bbox": [
+   10.6,
+   7.38,
+   6.69
+  ]
+ },
+ "House_B": {
+  "tris": 3486,
+  "mats": [
+   "Stone",
+   "Plaster",
+   "Timber",
+   "Shingle"
+  ],
+  "bbox": [
+   12.45,
+   9.52,
+   10.84
+  ]
+ },
+ "House_C": {
+  "tris": 2524,
+  "mats": [
+   "Stone",
+   "Timber",
+   "Thatch"
+  ],
+  "bbox": [
+   17.5,
+   13.49,
+   8.05
+  ]
+ },
+ "House_D": {
+  "tris": 2686,
+  "mats": [
+   "Stone",
+   "Timber",
+   "Shingle"
+  ],
+  "bbox": [
+   12.77,
+   7.14,
+   7.24
+  ]
+ },
+ "Chapel": {
+  "tris": 4104,
+  "mats": [
+   "Stone",
+   "Shingle",
+   "Timber"
+  ],
+  "bbox": [
+   19.97,
+   12.31,
+   17.37
+  ]
+ },
+ "Windmill": {
+  "tris": 1124,
+  "mats": [
+   "Stone",
+   "Timber",
+   "Shingle"
+  ],
+  "bbox": [
+   5.29,
+   11.57,
+   11.41
+  ]
+ },
+ "Mill_Sails": {
+  "tris": 652,
+  "mats": [
+   "Timber",
+   "Plaster"
+  ],
+  "bbox": [
+   12.0,
+   0.5,
+   12.0
+  ]
+ },
+ "Bridge": {
+  "tris": 856,
+  "mats": [
+   "Stone"
+  ],
+  "bbox": [
+   18.2,
+   8.0,
+   5.9
+  ]
+ },
+ "Well": {
+  "tris": 382,
+  "mats": [
+   "Stone",
+   "Timber",
+   "Shingle",
+   "Thatch"
+  ],
+  "bbox": [
+   2.71,
+   2.0,
+   3.05
+  ]
+ },
+ "Fence": {
+  "tris": 358,
+  "mats": [
+   "Timber"
+  ],
+  "bbox": [
+   4.11,
+   0.15,
+   1.31
+  ]
+ },
+ "StoneWall": {
+  "tris": 192,
+  "mats": [
+   "Stone"
+  ],
+  "bbox": [
+   4.0,
+   0.75,
+   1.16
+  ]
+ },
+ "Dock": {
+  "tris": 508,
+  "mats": [
+   "Timber",
+   "Thatch"
+  ],
+  "bbox": [
+   2.3,
+   7.11,
+   3.55
+  ]
+ },
+ "Tree_Pine_A": {
+  "tris": 356,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   6.36,
+   6.09,
+   17.0
+  ]
+ },
+ "Tree_Pine_B": {
+  "tris": 316,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   4.88,
+   5.28,
+   20.0
+  ]
+ },
+ "Tree_Oak_A": {
+  "tris": 668,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   12.49,
+   12.17,
+   12.08
+  ]
+ },
+ "Tree_Oak_B": {
+  "tris": 588,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   10.99,
+   10.86,
+   9.9
+  ]
+ },
+ "Tree_Birch": {
+  "tris": 350,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   4.01,
+   3.83,
+   11.95
+  ]
+ },
+ "Tree_Dead": {
+  "tris": 172,
+  "mats": [
+   "Bark"
+  ],
+  "bbox": [
+   3.78,
+   3.07,
+   8.01
+  ]
+ },
+ "Bush_A": {
+  "tris": 120,
+  "mats": [
+   "Leaf"
+  ],
+  "bbox": [
+   2.54,
+   2.08,
+   1.29
+  ]
+ },
+ "Bush_B": {
+  "tris": 120,
+  "mats": [
+   "Leaf"
+  ],
+  "bbox": [
+   1.84,
+   1.54,
+   0.93
+  ]
+ },
+ "Tree_Pine_LOD": {
+  "tris": 36,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   4.68,
+   5.0,
+   17.5
+  ]
+ },
+ "Tree_Oak_LOD": {
+  "tris": 46,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   10.96,
+   8.73,
+   11.2
+  ]
+ },
+ "Rock_A": {
+  "tris": 80,
+  "mats": [
+   "Rock"
+  ],
+  "bbox": [
+   1.6,
+   1.24,
+   1.02
+  ]
+ },
+ "Rock_B": {
+  "tris": 160,
+  "mats": [
+   "Rock"
+  ],
+  "bbox": [
+   3.36,
+   2.16,
+   1.91
+  ]
+ },
+ "Rock_C": {
+  "tris": 160,
+  "mats": [
+   "Rock"
+  ],
+  "bbox": [
+   5.28,
+   3.64,
+   2.57
+  ]
+ },
+ "Cliff_A": {
+  "tris": 400,
+  "mats": [
+   "Rock"
+  ],
+  "bbox": [
+   11.89,
+   6.95,
+   5.7
+  ]
+ }
+}

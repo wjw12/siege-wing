@@ -1,0 +1,30 @@
+<!doctype html><html><body><pre id=o>running</pre><script type="module">
+import { audio } from '../../src/audio.js';
+const SR=48000;
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}
+ for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let j=0;j<len/2;j++){const ur=re[i+j],ui=im[i+j],vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci,vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;re[i+j]=ur+vr;im[i+j]=ui+vi;re[i+j+len/2]=ur-vr;im[i+j+len/2]=ui-vi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t;}}}}
+function stats(d,from=0){let peak=0,sq=0,nan=0;const n=d.length-from;for(let i=from;i<d.length;i++){const v=d[i];if(!isFinite(v))nan++;const a=Math.abs(v);if(a>peak)peak=a;sq+=v*v;}
+ const N=65536,re=new Float32Array(N),im=new Float32Array(N);for(let i=0;i<N&&from+i<d.length;i++)re[i]=d[from+i];fft(re,im);
+ let tot=0,cen=0,low=0,sub=0;for(let i=1;i<N/2;i++){const p=re[i]*re[i]+im[i]*im[i],f=i*SR/N;tot+=p;cen+=p*f;if(f<150)low+=p;if(f<70)sub+=p;}
+ // effective duration: last sample above -50 dB of peak
+ let last=0;for(let i=d.length-1;i>=0;i--)if(Math.abs(d[i])>peak*0.003){last=i;break;}
+ return `peak=${peak.toFixed(3)} rms=${Math.sqrt(sq/n).toFixed(3)} cen=${(cen/(tot||1)).toFixed(0)}Hz low<150=${(100*low/(tot||1)).toFixed(0)}% sub<70=${(100*sub/(tot||1)).toFixed(0)}% effDur=${(last/SR).toFixed(2)}s nan=${nan}`;}
+const out=[];const T0=performance.now();
+try{
+ for(const n of [...audio._names(),...audio._loopNames()]){const t=performance.now();const b=await audio._render(n,SR);out.push(n.padEnd(14)+' len='+b.duration.toFixed(2)+'s '+stats(b.getChannelData(0))+' render='+(performance.now()-t).toFixed(0)+'ms');}
+ const base={active:true,rotorRPM:1,rotorLoad:0.5,speed:10};
+ const states={menu:{active:false},hover:base,loaded:{...base,rotorLoad:1,speed:60},cockpit:{...base,cockpit:true},dmgAll:{...base,dmgRotor:1,dmgEngine:1,dmgTail:1},
+  crowdNear:{...base,crowd:1,crowdDist:60},crowdFar:{...base,crowd:1,crowdDist:900},panic:{...base,crowd:0.6,crowdPanic:1,crowdDist:80},cheer:{active:true,rotorRPM:0,cheer:1,crowdDist:100,fire:1},
+  alerts:{...base,warnBallista:0.8,lock:2,masterAlarm:true,sink:true,overheat:1,gunFiring:true},everything:{...base,rotorLoad:1,speed:70,dmgRotor:1,dmgEngine:1,dmgTail:1,crowd:1,crowdPanic:1,crowdDist:30,fire:1,warnBallista:1,lock:2,masterAlarm:true,sink:true,overheat:1,gunFiring:true}};
+ for(const [n,s] of Object.entries(states)){const b=await audio._renderState(s,3.5,SR);out.push(('state:'+n).padEnd(18)+' L '+stats(b.getChannelData(0),SR*1.5));}
+ out.push('total ms '+(performance.now()-T0).toFixed(0));
+ // live init smoke test
+ audio.init();const t1=performance.now();await audio.whenReady();out.push('live init ready='+audio.ready+' prepare ms='+(performance.now()-t1).toFixed(0)+' ctxState='+(audio.context&&audio.context.state)+' sr='+(audio.context&&audio.context.sampleRate));
+ audio.update(0.016,{listener:[0,0,0],fwd:[0,0,-1],right:[1,0,0],active:true,rotorRPM:1,lock:1,boundary:2,overheat:1,crowd:1,crowdPanic:1});
+ for(const n of audio._names())audio.play(n,{pos:[300,0,-200]});for(let i=0;i<80;i++)audio.play('cannon');audio.play('nonexistent');audio.play('explLarge',{pos:[0,0,-2500]});
+ audio.update(0.016,{});audio.update(0.016,{active:false});audio.stopAll();audio.suspend();audio.resume();audio.setVolume(0.5,0.5,0.5);audio.init();
+ out.push('live api smoke OK');
+}catch(e){out.push('ERROR '+e+' '+(e.stack||''));}
+document.getElementById('o').textContent=out.join('\n');
+await fetch('/__shot?name=audio_stats.txt',{method:'POST',body:'x,'+btoa(out.join('\n'))});
+</script></body></html>

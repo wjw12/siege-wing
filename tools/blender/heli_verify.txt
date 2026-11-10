@@ -1,0 +1,74 @@
+Body             MESH   parent=-          loc(blender)=(0.000, 0.000, 0.000) tris=21756 mats=['Hull', 'Paint', 'HullB', 'Metal', 'FormLight'] col=['Color'] uv=1
+Canopy           MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=2880 mats=['Glass'] col=['Color'] uv=1
+Cheeks           MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=1936 mats=['HullB', 'Paint', 'Metal'] col=['Color'] uv=1
+Cockpit          MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=16519 mats=['Paint', 'Metal', 'GaugeMark', 'Lens'] col=['Color'] uv=1
+Collective       MESH   parent=Cockpit    loc(blender)=(-0.300, 1.740, 0.020) tris=108 mats=['Metal', 'Paint'] col=['Color'] uv=1
+Cyclic           MESH   parent=Cockpit    loc(blender)=(0.000, 2.220, -0.290) tris=192 mats=['Metal', 'Paint'] col=['Color'] uv=1
+Exhaust_L        EMPTY  parent=Body       loc(blender)=(-1.078, -2.960, 0.784) 
+Exhaust_R        EMPTY  parent=Body       loc(blender)=(1.078, -2.960, 0.784) 
+FlareL           EMPTY  parent=Body       loc(blender)=(-0.350, -5.300, 0.100) 
+FlareR           EMPTY  parent=Body       loc(blender)=(0.350, -5.300, 0.100) 
+Gear             MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=1672 mats=['Paint', 'Metal'] col=['Color'] uv=1
+Gear_FL          EMPTY  parent=Body       loc(blender)=(-1.060, 1.550, -1.750) 
+Gear_FR          EMPTY  parent=Body       loc(blender)=(1.060, 1.550, -1.750) 
+Gear_Tail        EMPTY  parent=Body       loc(blender)=(0.000, -8.000, -1.750) 
+GunPitch         MESH   parent=TurretYaw  loc(blender)=(0.000, 4.350, -1.150) tris=508 mats=['Metal', 'Paint'] col=['Color'] uv=1
+Gunner           MESH   parent=Cockpit    loc(blender)=(0.000, 0.000, 0.000) tris=2788 mats=['Paint', 'Lens'] col=['Color'] uv=1
+GunnerEye        EMPTY  parent=Body       loc(blender)=(0.000, 3.690, 0.500) 
+HUDGlass         MESH   parent=Cockpit    loc(blender)=(0.000, 2.500, 0.915) tris=2 mats=['Glass'] col=['Color'] uv=1
+Horizon          MESH   parent=Cockpit    loc(blender)=(0.000, 2.741, 0.648) tris=880 mats=['Paint'] col=['Color'] uv=1
+Light_Beacon     EMPTY  parent=Body       loc(blender)=(0.000, -1.750, 1.200) 
+Light_Nav_L      EMPTY  parent=Body       loc(blender)=(-2.620, 0.800, -0.230) 
+Light_Nav_R      EMPTY  parent=Body       loc(blender)=(2.620, 0.800, -0.230) 
+Light_Search     EMPTY  parent=Body       loc(blender)=(0.260, 5.080, -0.830) 
+MFD_L            MESH   parent=Cockpit    loc(blender)=(-0.285, 2.702, 0.565) tris=2 mats=['MFD_L'] col=['Color'] uv=1
+MFD_R            MESH   parent=Cockpit    loc(blender)=(0.285, 2.702, 0.565) tris=2 mats=['MFD_R'] col=['Color'] uv=1
+MainRotor        MESH   parent=Body       loc(blender)=(0.000, 0.000, 2.200) tris=3384 mats=['Metal', 'Paint'] col=['Color'] uv=1
+Missile_L1       MESH   parent=Body       loc(blender)=(-1.890, 0.220, -0.620) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_L2       MESH   parent=Body       loc(blender)=(-1.890, 0.220, -0.885) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_L3       MESH   parent=Body       loc(blender)=(-2.210, 0.220, -0.620) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_L4       MESH   parent=Body       loc(blender)=(-2.210, 0.220, -0.885) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_R1       MESH   parent=Body       loc(blender)=(1.890, 0.220, -0.620) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_R2       MESH   parent=Body       loc(blender)=(1.890, 0.220, -0.885) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_R3       MESH   parent=Body       loc(blender)=(2.210, 0.220, -0.620) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Missile_R4       MESH   parent=Body       loc(blender)=(2.210, 0.220, -0.885) tris=308 mats=['Paint', 'Lens'] col=['Color'] uv=1
+Muzzle           EMPTY  parent=GunPitch   loc(blender)=(0.000, 5.880, -1.150) 
+Nacelles         MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=5696 mats=['HullB', 'Paint', 'Metal'] col=['Color'] uv=1
+Needle_Alt       MESH   parent=Cockpit    loc(blender)=(0.100, 2.723, 0.653) tris=2 mats=['Needle'] col=['Color'] uv=1
+Needle_RPM       MESH   parent=Cockpit    loc(blender)=(0.100, 2.697, 0.556) tris=2 mats=['Needle'] col=['Color'] uv=1
+Needle_Speed     MESH   parent=Cockpit    loc(blender)=(-0.100, 2.723, 0.653) tris=2 mats=['Needle'] col=['Color'] uv=1
+Needle_Temp      MESH   parent=Cockpit    loc(blender)=(0.000, 2.671, 0.459) tris=2 mats=['Needle'] col=['Color'] uv=1
+Needle_Torque    MESH   parent=Cockpit    loc(blender)=(-0.100, 2.671, 0.459) tris=2 mats=['Needle'] col=['Color'] uv=1
+Needle_VS        MESH   parent=Cockpit    loc(blender)=(-0.100, 2.697, 0.556) tris=2 mats=['Needle'] col=['Color'] uv=1
+NoseDetail       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=2070 mats=['Paint', 'Lens', 'Metal'] col=['Color'] uv=1
+Part_CowlL       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=420 mats=['HullB', 'Metal', 'Paint'] col=['Color'] uv=1
+Part_CowlR       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=420 mats=['HullB', 'Metal', 'Paint'] col=['Color'] uv=1
+Part_DoorL       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=220 mats=['HullB', 'Metal'] col=['Color'] uv=1
+Part_DoorR       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=220 mats=['HullB', 'Metal'] col=['Color'] uv=1
+Part_StabL       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=88 mats=['HullB'] col=['Color'] uv=1
+Part_StabR       MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=88 mats=['HullB'] col=['Color'] uv=1
+Part_TailFin     MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=188 mats=['HullB', 'Paint'] col=['Color'] uv=1
+Part_WingTipL    MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=260 mats=['HullB', 'Paint'] col=['Color'] uv=1
+Part_WingTipR    MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=260 mats=['HullB', 'Paint'] col=['Color'] uv=1
+Pilot            MESH   parent=Cockpit    loc(blender)=(0.000, 0.000, 0.000) tris=2152 mats=['Paint'] col=['Color'] uv=1
+PilotEye         EMPTY  parent=Body       loc(blender)=(0.000, 1.910, 0.920) 
+PilotHead        MESH   parent=Pilot      loc(blender)=(0.000, 0.000, 0.000) tris=636 mats=['Paint', 'Lens'] col=['Color'] uv=1
+PodL             MESH   parent=Body       loc(blender)=(-1.400, 0.200, -0.690) tris=1244 mats=['Paint', 'Metal'] col=['Color'] uv=1
+PodR             MESH   parent=Body       loc(blender)=(1.400, 0.200, -0.690) tris=1244 mats=['Paint', 'Metal'] col=['Color'] uv=1
+RocketL          EMPTY  parent=PodL       loc(blender)=(-1.400, 1.000, -0.690) 
+RocketR          EMPTY  parent=PodR       loc(blender)=(1.400, 1.000, -0.690) 
+Tail             MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=872 mats=['HullB', 'Metal', 'Paint', 'FormLight'] col=['Color'] uv=1
+TailRotor        MESH   parent=Body       loc(blender)=(0.360, -8.350, 1.200) tris=612 mats=['Metal', 'Paint'] col=['Color'] uv=1
+TailRotorHub     EMPTY  parent=Body       loc(blender)=(0.360, -8.350, 1.200) 
+TopDetail        MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=2678 mats=['HullB', 'Metal', 'Paint', 'Lens'] col=['Color'] uv=1
+TurretMount      MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=146 mats=['Paint', 'Metal'] col=['Color'] uv=1
+TurretYaw        MESH   parent=Body       loc(blender)=(0.000, 4.350, -0.860) tris=342 mats=['Metal'] col=['Color'] uv=1
+Warn_Engine      MESH   parent=Cockpit    loc(blender)=(-0.250, 2.735, 0.701) tris=44 mats=['Warn_Engine'] col=['Color'] uv=1
+Warn_Hyd         MESH   parent=Cockpit    loc(blender)=(0.285, 2.735, 0.701) tris=44 mats=['Warn_Hyd'] col=['Color'] uv=1
+Warn_Master      MESH   parent=Cockpit    loc(blender)=(-0.345, 2.735, 0.701) tris=44 mats=['Warn_Master'] col=['Color'] uv=1
+Warn_Rotor       MESH   parent=Cockpit    loc(blender)=(0.355, 2.735, 0.701) tris=44 mats=['Warn_Rotor'] col=['Color'] uv=1
+Warn_Tail        MESH   parent=Cockpit    loc(blender)=(0.215, 2.735, 0.701) tris=44 mats=['Warn_Tail'] col=['Color'] uv=1
+Wings            MESH   parent=Body       loc(blender)=(0.000, 0.000, 0.000) tris=1528 mats=['HullB', 'Paint', 'Metal'] col=['Color'] uv=1
+TOTAL TRIS 76709  size 10106272
+materials: FormLight, GaugeMark, Glass, Hull, HullB, Lens, MFD_L, MFD_R, Metal, Needle, Paint, Warn_Engine, Warn_Hyd, Warn_Master, Warn_Rotor, Warn_Tail
+images: heli_fuse_col 2048x2048, heli_fuse_nrm 2048x2048, heli_gen_col 1024x1024, heli_gen_nrm 1024x1024
