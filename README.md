@@ -7,7 +7,7 @@
 <p align="center"><b>One gunship. Two thousand soldiers. Ten minutes of daylight.</b></p>
 
 <p align="center">
-  <a href="https://claude.ai/artifact/Sm7qSJdTLqqQYC5PR2th22"><b>▶ Play in your browser</b></a>
+  <a href="https://wjw12.github.io/siege-wing/"><b>▶ Play in your browser</b></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/wjw12/siege-wing/releases/latest"><b>⬇ Download</b></a>
   &nbsp;·&nbsp;

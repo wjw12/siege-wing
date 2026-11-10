@@ -1,0 +1,46 @@
+# Publishes the playable game to GitHub Pages (https://wjw12.github.io/siege-wing/).
+# Runs when a GitHub release is published, or by hand from the Actions tab.
+# Pushes to main do not deploy, so work in progress never reaches the live site.
+name: Deploy game to GitHub Pages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site (runtime files only)
+        run: |
+          mkdir -p _site/assets/models _site/assets/audio
+          cp -r index.html src vendor _site/
+          cp -r assets/textures assets/ui _site/assets/
+          cp assets/models/heli.glb assets/models/soldiers.glb assets/models/props.glb assets/models/village.glb _site/assets/models/
+          cp -r assets/audio/music assets/audio/sfx assets/audio/vo assets/audio/manifest.json _site/assets/audio/
+          touch _site/.nojekyll
+          du -sh _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
