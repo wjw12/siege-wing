@@ -11,6 +11,7 @@ import { settings } from './input.js';
 import { sky } from './sky.js';
 
 export const RUN_SECONDS = 600;   // sunset clock: full dusk at 10 minutes
+const EMPTY = [['cannon', '30MM'], ['rockets', 'ROCKETS'], ['missiles', 'MISSILES'], ['flares', 'FLARES']];
 const say = (text, kind = 'info', dur = 4) => G.events.dispatchEvent(new CustomEvent('msg', { detail: { text, kind, dur } }));
 const banner = (title, sub) => G.events.dispatchEvent(new CustomEvent('banner', { detail: { title, sub } }));
 
@@ -30,7 +31,7 @@ export const mission = {
     on('heliDestroyed', e => { if (this.state === 'play') { this.cause = e.detail; this.lose(e.detail); } });
   },
   start(skipApproach) {
-    this.state = 'play'; this.time = 0; this.outT = 10; this.outside = false; this.rearmLandings = 0; this.altBins.fill(0); this.result = null; this.endT = 0; this.flaggedLowAmmo = false;
+    this.state = 'play'; this.time = 0; this.outT = 10; this.outside = false; this.rearmLandings = 0; this.altBins.fill(0); this.result = null; this.endT = 0; this.flaggedLowAmmo = false; this.flagHull = false; this.flagEmpty = {};
     this.warn120 = this.warn45 = false; this.lightLeft = RUN_SECONDS; this.approach = !skipApproach; this.tutorialStep = 0; this.tutT = 0; this.cause = '';
     castle.reset(); crowd.reset(); threats.reset(); weapons.reset(); terrain.clearScorch();
     if (skipApproach) {
@@ -83,6 +84,12 @@ export const mission = {
     // low ammo nudge
     const a = weapons.ammo; const low = a.cannon < 80 && a.rockets < 6 && a.missiles === 0;
     if (low && !this.flaggedLowAmmo) { this.flaggedLowAmmo = true; say('AMMUNITION LOW — REARM PAD ON THE FAR HILL', 'warn', 5); } if (!low) this.flaggedLowAmmo = false;
+    // return-to-pad notices: hull under half, or any store emptied (re-armed once repaired / reloaded)
+    if (heli.state === 'fly' && !heli.onPad) {
+      if (heli.hull < 50 && !this.flagHull) { this.flagHull = true; say(`HULL ${Math.round(heli.hull)}% — RETURN TO THE PAD (H) TO REPAIR`, 'warn', 6); }
+      for (const [k, name] of EMPTY) if (a[k] <= 0 && !this.flagEmpty[k]) { this.flagEmpty[k] = true; say(`${name} EMPTY — RETURN TO THE PAD (H) TO REARM`, 'warn', 6); }
+    }
+    if (heli.hull >= 60) this.flagHull = false; for (const [k] of EMPTY) if (a[k] > 0) this.flagEmpty[k] = false;
     // ---- last light: the run is capped at ten minutes ----
     if (this.phase >= 1) {
       const left = RUN_SECONDS - this.time;

@@ -148,6 +148,7 @@ function devSetup() {
   if (Q.get('time')) mission.time = +Q.get('time');
   if (Q.get('kill')) setTimeout(() => castle.destroy(castle.towers[parseInt(Q.get('kill'))]), 2500);
   if (Q.get('dmg')) setTimeout(() => { const n = +Q.get('dmg'); for (let i = 0; i < n; i++) heli.hit({ hull: 0, sub: 'canopy', subDmg: i % 3 ? 3 : 12, kind: 'arrows' }); heli.hit({ hull: 5, sub: 'hyd', subDmg: 60, kind: 'test' }); if (Q.has('hurt')) heli.hull = +Q.get('hurt'); }, 1500);
+  if (Q.get('setammo')) setTimeout(() => { for (const kv of Q.get('setammo').split(',')) { const [k, v] = kv.split(':'); if (k in weapons.ammo) weapons.ammo[k] = +v; } }, 1500);   // dev: setammo=rockets:0,flares:0
   if (Q.get('look')) { const ls = Q.get('look').split(';').map(c => c.split(',').map(Number)); heli.devLook = ls[0]; if (ls.length > 1) setInterval(() => { heli.devLook = ls[Math.min(ls.length - 1, nShots - dev.shots.length)]; }, 100); }   // dev: cockpit free-look per shot — look=yaw,pitch;...
   if (Q.has('god')) heli.hit = () => { };
   dev.capture = () => { const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height; const x = c.getContext('2d'); x.drawImage(canvas, 0, 0); if (!Q.has('nohud')) x.drawImage(hud.cv, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.9); };
