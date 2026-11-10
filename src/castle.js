@@ -17,7 +17,7 @@ function stoneMaterial() {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vSU; varying vec3 vSN; varying vec3 vSW;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n vSU = uv; vSN = normalize(mat3(modelMatrix) * normal); vSW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec2 vSU; varying vec3 vSN; varying vec3 vSW; uniform sampler2D uNoise; vec3 swNP; float swR;
+      varying vec2 vSU; varying vec3 vSN; varying vec3 vSW; uniform sampler2D uNoise; uniform float uNight; uniform float uTime; vec3 swNP; float swR;
       float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`)
       .replace('#include <color_fragment>', /* glsl */`#include <color_fragment>
       {
@@ -60,7 +60,11 @@ function stoneMaterial() {
         diffuseColor.rgb = col * (kind < 0.5 ? vColor.rgb : vec3(shade));
       }`)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = swR;')
-      .replace('#include <normal_fragment_maps>', 'normal = normalize(normal + (viewMatrix * vec4(swNP, 0.0)).xyz);');
+      .replace('#include <normal_fragment_maps>', 'normal = normalize(normal + (viewMatrix * vec4(swNP, 0.0)).xyz);')
+      // windows and arrow slits (the DARK vertex colour) glow with firelight as dusk falls; about two in three are lit, each flickering slightly
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      { float isWin = step(max(vColor.r, max(vColor.g, vColor.b)), 0.1); if (isWin > 0.5) { float id = h21(floor(vSW.xz * 0.35) + floor(vSW.y * 0.2) * 17.0);
+          float fl = 0.8 + 0.2 * sin(uTime * (5.0 + id * 9.0) + id * 40.0); totalEmissiveRadiance += vec3(1.0, 0.47, 0.13) * step(0.34, id) * fl * smoothstep(0.12, 0.75, uNight) * 3.2; } }`);
   });
 }
 

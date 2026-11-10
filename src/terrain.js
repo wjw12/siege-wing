@@ -301,6 +301,9 @@ export const terrain = {
       for (let s = 0; s < SEG; s++) { const [ex, ez] = edge(s); pos.push(ex * 0.995, this.height(ex, ez) - 30, ez * 0.995); nor.push(0, 1, 0); }
       for (let s = 0; s < SEG; s++) { const a = s, b = (s + 1) % SEG, c = base + s, d = base + (s + 1) % SEG; idx.push(a, c, b, b, c, d); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx);
+      // the ring's cells are hundreds of metres wide: use normals of the triangles actually drawn (a 12 m finite difference at each
+      // vertex is far too local and paints the mesh grid onto the mountains as lines of rock). Keep the seam row matching the heightmap.
+      { g.computeVertexNormals(); const na = g.attributes.normal; for (let i = 0; i < SEG * 3; i++) na.array[i] = nor[i]; for (let i = base * 3; i < na.array.length; i += 3) { na.array[i] = 0; na.array[i + 1] = 1; na.array[i + 2] = 0; } na.needsUpdate = true; }
       const m = new THREE.Mesh(g, this.material); m.receiveShadow = false; m.frustumCulled = false; m.matrixAutoUpdate = false; group.add(m);
     }
     scene.add(group);

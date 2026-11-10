@@ -132,7 +132,7 @@ export const scenery = {
       const s = 0.75 + rng() * 0.6; const ry = rng() * TAU;
       const key = Math.floor(x / CS) + ',' + Math.floor(z / CS); let c = cells.get(key); if (!c) cells.set(key, c = { cx: (Math.floor(x / CS) + 0.5) * CS, cz: (Math.floor(z / CS) + 0.5) * CS, lists: types.map(() => []), lp: [], lo: [], lb: [], cy: y });
       const inst = { x, y: y - 0.15, z, ry, s, rx: (rng() - 0.5) * 0.08, rz: (rng() - 0.5) * 0.08 };
-      c.lists[t].push(inst); (t === 4 ? c.lb : t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? inst : t === 5 ? { ...inst, s: s * 0.45 } : t >= 2 ? { ...inst, s: s * 1.16 } : { ...inst, s: s * 1.08 });
+      c.lists[t].push(inst); (t === 4 ? c.lb : t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? inst : t === 5 ? { ...inst, s: s * 0.45 } : t >= 2 ? { ...inst, s: s * 1.05 } : { ...inst, s: s * 1.03 });
       if (r < 1750) { const col = world.addCyl(x, z, Math.max(1.0, dims[t][1] * s * 0.55), y, y + dims[t][0] * s - 1.0, 'tree'); col.hard = true; }
     }
     const fol = this.mats.foliage;
@@ -424,7 +424,7 @@ export const scenery = {
   update(dt, camera) {
     const cx = camera.position.x, cz = camera.position.z;
     // forest LOD
-    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); const near = d < TREE_R; c.fullGroup.visible = near; c.lodGroup.visible = !near; }
+    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); const near = d < (c.fullGroup.visible ? TREE_R + 30 : TREE_R); /* hysteresis: no flicker at the ring */ c.fullGroup.visible = near; c.lodGroup.visible = !near; }
     this.grassU.uCamG.value.copy(camera.position);
     if (this.millSails) this.millSails.rotation.z += dt * 0.5;
     if (this.windsock) this.windsock.rotation.y = 1.9 + Math.sin(G.time * 0.7) * 0.25 + Math.sin(G.time * 2.3) * 0.06;
