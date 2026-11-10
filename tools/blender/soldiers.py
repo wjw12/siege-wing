@@ -2,7 +2,11 @@
 #   blender.exe -b -P soldiers.py            -> build + export assets/models/soldiers.glb
 #   blender.exe -b -P soldiers.py -- preview -> also render preview sheets to tools/blender/preview/sold_*.png
 # Contract with src/crowd.js: 16-bone rig, every vertex rigidly bound to ONE bone, albedo in vertex colour,
-# uv.x = heraldic-tint cloth mask, uv.y = metal mask, meshes <Type> / <Type>_LOD1, clips in CLIPS.
+# uv.x = heraldic-tint cloth mask, uv.y = variant mask + 0.5 * metal, meshes <Type> / <Type>_LOD1, clips in CLIPS.
+# Variants: every soldier draws one of six "selections" sel = 0..5 (helmet = sel % 3, shield face = sel // 3), picked in the
+# shader from a per-instance hash. floor(uv.y) is a bit mask: 0 = always drawn, otherwise bit sel must be set or the
+# vertex is collapsed. HV(h) / SV(s) below give the masks for helmet h / shield face s.
+#   blender.exe -b -P soldiers.py -- pv      -> variant sheet tools/blender/preview/sold_variants.png (no export)
 import bpy, math, sys, os, random, json
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
@@ -13,6 +17,7 @@ PREV = ROOT + r"\tools\blender\preview"
 STATS = ROOT + r"\tools\blender\soldiers_stats.json"
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 DO_PREVIEW = 'preview' in ARGS
+DO_PV = 'pv' in ARGS
 FPS = 24
 
 X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
@@ -34,6 +39,13 @@ def lin(c):
     return tuple((v / 12.92) if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
 
 
+def HV(h):      # mask: helmet variant h (0..2) -> selections h and h + 3
+    return 9 << h
+
+
+SV = (7, 56)    # mask: shield face 0 -> selections 0..2, face 1 -> selections 3..5
+
+
 def _k(n):      # radius factor that gives an n-gon the area of the circle it stands for
     return math.sqrt(PI / (n / 2 * math.sin(2 * PI / n)))
 
@@ -45,17 +57,18 @@ def _pw(c, e):
 # ----------------------------------------------------------------------------- mesh builder
 class MB:
     def __init__(s):
-        s.v = []; s.c = []; s.t = []; s.m = []; s.b = []
-        s.f = []; s.ff = []; s.fo = []
+        s.v = []; s.c = []; s.t = []; s.m = []; s.b = []; s.k = []
+        s.f = []; s.ff = []; s.fo = []; s.fk = []
+        s.var = 0         # variant mask given to everything added while it is set (0 = always drawn)
         s.occ = True      # faces added while True occlude in the AO bake (gear is switched off)
         s.flat = False    # faces added while True are flat shaded
 
     def add(s, p, col, bone, tint=0.0, metal=0.0):
-        s.v.append(tuple(p)); s.c.append(col); s.b.append(bone); s.t.append(tint); s.m.append(metal)
+        s.v.append(tuple(p)); s.c.append(col); s.b.append(bone); s.t.append(tint); s.m.append(metal); s.k.append(s.var)
         return len(s.v) - 1
 
     def face(s, idx, flat=None):
-        s.f.append(tuple(idx)); s.ff.append(s.flat if flat is None else flat); s.fo.append(s.occ)
+        s.f.append(tuple(idx)); s.ff.append(s.flat if flat is None else flat); s.fo.append(s.occ); s.fk.append(s.var)
 
     def ring(s, c, u, v, ru, rv, n, phase, col, bone, tint=0.0, metal=0.0, fn=None, sq=1.0):
         idx = []
@@ -170,8 +183,8 @@ class MB:
         s.poly([Vector(p) + nrm * (t / 2) for p in pts], colf, bone, tintf, metal)
         s.poly([Vector(p) - nrm * (t / 2) for p in pts], colb, bone, tintb, metal, flip=True)
 
-    def tris(s):
-        return sum(len(f) - 2 for f in s.f)
+    def tris(s, sel=None):
+        return sum(len(f) - 2 for f, k in zip(s.f, s.fk) if sel is None or k == 0 or (k >> sel) & 1)
 
 
 # ----------------------------------------------------------------------------- body, LOD0
@@ -237,8 +250,15 @@ def arms(mb, sp, n=6):
         x = xa * sx
         UA = 'UpperArm.' + side; LA = 'LowerArm.' + side; HA = 'Hand.' + side
         O = dict(x=x, metal=am)
-        mb.loft([(1.142, .030, .032, UA, sh(ac, .85), O), (1.19, .044, .047, UA, sh(ac, .95), O), (1.33, .053, .058, UA, ac, O),
-                 (1.455, .061, .067, UA, ac, O), (1.508, .036, .042, UA, ac, dict(O, x=x - .014 * sx))], n, cap_bot=True, cap_top=True)
+        r = [(1.142, .030, .032, UA, sh(ac, .85), O), (1.19, .044, .047, UA, sh(ac, .95), O), (1.33, .053, .058, UA, ac, O)]
+        if sp.get('sleeve'):     # the shoulder end of the arm wears the mantle's colour, so it reads as cloth when it lifts through
+            sc_, st_ = sp['sleeve']
+            Q = dict(x=x + .004 * sx, tint=st_, sq=.9)
+            r += [(1.392, .056, .061, UA, ac, O), (1.386, .064, .070, UA, sh(sc_, .74), dict(Q, split=True)),
+                  (1.458, .067, .073, UA, sh(sc_, .92), Q), (1.512, .042, .048, UA, sc_, dict(Q, x=x - .014 * sx))]
+        else:
+            r += [(1.455, .061, .067, UA, ac, O), (1.508, .036, .042, UA, ac, dict(O, x=x - .014 * sx))]
+        mb.loft(r, n, cap_bot=True, cap_top=True)
         O = dict(x=x, metal=fm)
         mb.loft([(0.94, .033, .036, LA, sh(fc, .9), O), (1.10, .047, .050, LA, fc, O),
                  (1.185, .045, .047, LA, fc, O), (1.218, .027, .029, LA, fc, O)], n, cap_top=True)
@@ -262,7 +282,7 @@ def head(mb, sp, n=8, top=False):
             if k == 0:
                 c = brd or sh(SKIN, .9)
             if k == 2:
-                c = sh(SKIN, .55) if i else sh(SKIN, .8)
+                c = sh(SKIN, .60) if i else sh(SKIN, .84)
             r = {'col': c, 'tint': 0, 'metal': 0}
             if k == 1 and i == 0:
                 r['p'] = p + Vector((0, -.017, -.006))
@@ -346,14 +366,17 @@ def round_shield(mb, lod):
         mb.strip([(c, R, R, sh(WOOD, .6)), (c + X * .022, R, R, RIM, dict(metal=1)), (c + X * .030, R - .038, R - .038, sh(RIM, .9), dict(metal=1))],
                  n, Y, Z, B, comp=False)
         ri, ro = .085, R - .038
-        for i in range(n):
-            a0, a1 = 2 * PI * i / n, 2 * PI * (i + 1) / n
-            tinted = (i // 3) % 2 == 0
-            col = TINT if tinted else CREAM
-            q = []
-            for a, r, dx in ((a0, ro, .030), (a1, ro, .030), (a1, ri, .060), (a0, ri, .060)):
-                q.append(mb.add(c + Vector((dx, r * math.cos(a), r * math.sin(a))), sh(col, .92 if r == ro else 1.0), B, 1 if tinted else 0, 0))
-            mb.face(q)
+        for s in (0, 1):          # face 0: quarterly, face 1: tinted with a cream pale
+            mb.var = SV[s]
+            for i in range(n):
+                a0, a1 = 2 * PI * i / n, 2 * PI * (i + 1) / n
+                tinted = ((i // 3) % 2 == 0) if s == 0 else (i not in (2, 3, 8, 9))
+                col = TINT if tinted else CREAM
+                q = []
+                for a, r, dx in ((a0, ro, .030), (a1, ro, .030), (a1, ri, .060), (a0, ri, .060)):
+                    q.append(mb.add(c + Vector((dx, r * math.cos(a), r * math.sin(a))), sh(col, .92 if r == ro else 1.0), B, 1 if tinted else 0, 0))
+                mb.face(q)
+        mb.var = 0
         mb.strip([(c + X * .056, .095, .095, DSTEEL), (c + X * .092, .060, .060, STEEL), (c + X * .112, .018, .018, sh(STEEL, 1.1))],
                  6, Y, Z, B, cap1=True, metal=1, comp=False)
         mb.poly([c + Vector((0, R * math.cos(2 * PI * i / n), R * math.sin(2 * PI * i / n))) for i in range(n)], sh(WOOD, .62), B, flip=True)
@@ -361,10 +384,13 @@ def round_shield(mb, lod):
         n = 8
         R -= .02
         P = lambda i: c + Vector((.02, R * math.cos(2 * PI * i / n), R * math.sin(2 * PI * i / n)))
-        for i in range(n):
-            tinted = (i // 2) % 2 == 0
-            col = TINT if tinted else CREAM
-            mb.poly([P(i), P(i + 1), c + X * .075], sh(col, .95), B, 1 if tinted else 0)
+        for s in (0, 1):
+            mb.var = SV[s]
+            for i in range(n):
+                tinted = ((i // 2) % 2 == 0) if s == 0 else (i not in (1, 2, 5, 6))
+                col = TINT if tinted else CREAM
+                mb.poly([P(i), P(i + 1), c + X * .075], sh(col, .95), B, 1 if tinted else 0)
+        mb.var = 0
         mb.poly([P(i) - X * .02 for i in range(n)], sh(WOOD, .62), B, flip=True)
     mb.occ = True
 
@@ -379,11 +405,18 @@ def heater_shield(mb, lod):
     else:
         low = [(mid, .27), (.14, .25), (.43, 0), (.14, -.25), (mid, -.27)]
     P = lambda a, b, dx=0.0, k=1.0: (cx + dx, cy + a * k + (k - 1) * .04, cz + b * k)
-    # chief (cream) + field (tint); +X is the face
+    # face 0: chief (cream) + field (tint); +X is the face
+    mb.var = SV[0]
     mb.poly([P(top, -.27, .012), P(mid0, -.27, .012), P(mid0, .27, .012), P(top, .27, .012)], CREAM, B)
     if lod == 0:
         mb.poly([P(mid0, -.27, .012), P(mid, -.27, .012), P(mid, .27, .012), P(mid0, .27, .012)], (.09, .09, .10), B)
     mb.poly([P(a, b, .012) for a, b in reversed(low)], TINT, B, 1)
+    # face 1: per pale, tint / cream
+    mb.var = SV[1]
+    h = len(low) // 2
+    mb.poly([P(top, 0, .012)] + [P(a, b, .012) for a, b in reversed(low[1:h + 1])] + [P(top, .27, .012)], TINT, B, 1)
+    mb.poly([P(top, -.27, .012)] + [P(a, b, .012) for a, b in reversed(low[h:-1])] + [P(top, 0, .012)], CREAM, B)
+    mb.var = 0
     outline = [(top, -.27)] + list(reversed(low)) + [(top, .27)]
     if lod == 0:
         mb.poly([P(a, b, 0, 1.07) for a, b in outline], (.50, .50, .52), B, 0, 1)
@@ -526,11 +559,67 @@ def bascinet(mb, col):
             8, cap_top=True, phase=-PI / 2)
 
 
+def arming_cap(mb):
+    """padded, quilted cap worn over the coif"""
+    q = lambda i, p: {'col': sh(GAMB, .78)} if i % 2 else None
+    mb.loft([(1.700, .088, .102, 'Head', sh(LEATH, 1.05), {}), (1.722, .088, .102, 'Head', sh(LEATH, 1.05), {}),
+             (1.722, .086, .100, 'Head', GAMB, dict(fn=q, split=True)), (1.782, .078, .091, 'Head', sh(GAMB, 1.05), dict(fn=q)),
+             (1.822, .046, .054, 'Head', sh(GAMB, 1.1), {})], 8, cap_top=True, phase=-PI / 2)
+
+
+def chin_beard(mb, col):
+    mb.cyl((0, -.064, 1.618), (0, -.092, 1.528), (.068, .042), 0, 5, col, 'Head', col1=sh(col, .85))
+
+
+def hood_top(mb):
+    """the archer's hood worn up, with a short liripipe"""
+    M = dict(tint=1)
+    mb.loft([(1.742, .081, .096, 'Head', sh(TINT, .9), M), (1.800, .068, .082, 'Head', TINT, dict(M, y=.006)),
+             (1.838, .030, .038, 'Head', TINT, dict(M, y=.016))], 8, cap_top=True, phase=-PI / 2)
+    mb.cyl((0, .060, 1.815), (0, .175, 1.660), .034, 0, 4, sh(TINT, .9), 'Head', tint=1, col1=sh(TINT, .7))
+
+
+def brim_hat(mb):
+    """felt bycocket: brim drawn to a point in front, turned up behind, feather on the side"""
+    FELT = (.52, .38, .23)
+
+    def brim(i, p):
+        if i == 0:
+            return {'p': p + Vector((0, -.060, -.012))}
+        if i in (3, 4, 5):
+            return {'p': p + Vector((0, -.022, .034))}
+        return None
+    mb.loft([(1.712, .142, .150, 'Head', sh(FELT, .82), dict(fn=brim)), (1.742, .094, .106, 'Head', sh(FELT, .7), {}),
+             (1.742, .094, .106, 'Head', sh(FELT, .95), dict(split=True)), (1.812, .080, .092, 'Head', FELT, {}),
+             (1.856, .040, .046, 'Head', sh(FELT, 1.12), {})], 8, cap_top=True, phase=-PI / 2)
+    mb.loft([(1.706, .142, .150, 'Head', sh(FELT, .62), dict(fn=brim)), (1.735, .088, .100, 'Head', sh(FELT, .5), {})], 8, phase=-PI / 2, flip=True)
+    mb.plate([(.088, .02, 1.77), (.100, .15, 1.90), (.094, .20, 1.905), (.090, .07, 1.775)], X, .004, FEATH, sh(FEATH, .8), 'Head')
+
+
+def visor_bascinet(mb):
+    """hounskull bascinet with mail aventail (stands in for the whole head, like the great helm)"""
+    H = dict(metal=1)
+    mb.loft([(1.462, .150, .126, 'Chest', sh(MAIL, .72), dict(sq=.88)), (1.535, .104, .110, 'Head', sh(MAIL, .9), {}),
+             (1.622, .099, .113, 'Head', MAIL, {}),
+             (1.606, .103, .117, 'Head', sh(STEEL, .78), dict(H, split=True)), (1.722, .104, .118, 'Head', STEEL, dict(H, y=.004)),
+             (1.826, .072, .084, 'Head', sh(STEEL, 1.04), dict(H, y=.014)), (1.908, .012, .014, 'Head', sh(STEEL, 1.1), dict(H, y=.026))],
+            8, cap_top=True, phase=-PI / 2)
+    mb.cyl((0, -.078, 1.662), (0, -.232, 1.632), (.078, .070), 0, 6, sh(STEEL, .92), 'Head', metal=1, up=X, col1=sh(STEEL, 1.1))
+    mb.box((0, -.112, 1.722), (.135, .02, .016), BLACK, 'Head')
+
+
+def fan_crest(mb):
+    """transverse fan crest in the company colour"""
+    pts = [(.150 * math.cos(a), .012, 1.822 + .175 * math.sin(a)) for a in (math.radians(d) for d in (8, 40, 65, 90, 115, 140, 172))]
+    pts = [(.085, .012, 1.815)] + pts + [(-.085, .012, 1.815)]
+    mb.plate(pts, Y, .012, sh(TINT, .9), TINT, 'Head', tintf=1, tintb=1)
+
+
 # ----------------------------------------------------------------------------- types
 INF = dict(torso=(TINT, 1, 0), skirt=(0.66, TINT, 1, 0, 1.0), thigh=(HOSE, 0), shin=(HOSE, 0), boot=(BOOT, 0), boot_z=.36,
            arm=(MAIL, 0), forearm=(GAMB, 0), hand=(LEATH, 0), wrap=(MAIL, 0, 0))
 ARC = dict(torso=(GAMB, 0, 0), skirt=(0.72, sh(GAMB, .88), 0, 0, .95), thigh=(GHOSE, 0), shin=(GHOSE, 0), boot=(LEATH, 0), boot_z=.30,
-           arm=(GAMB, 0), forearm=(LEATH, 0), hand=(SKIN, 0), wrap=(TINT, 1, 0), quilt=True)
+           arm=(GAMB, 0), forearm=(LEATH, 0), hand=(SKIN, 0), wrap=(TINT, 1, 0), quilt=True, sleeve=(TINT, 1))
 KNI = dict(torso=(TINT, 1, 0), skirt=(0.55, TINT, 1, 0, 1.0), thigh=(STEEL, 1), shin=(STEEL, 1), boot=(DSTEEL, 1), boot_z=.30,
            arm=(STEEL, 1), forearm=(STEEL, 1), hand=(DSTEEL, 1), cuff=True, bulk=1.05, belt=(DLEATH, 0))
 WAR = dict(torso=(PLATE, 0, 1), skirt=(0.60, PLATE, 0, 1, 1.0), thigh=(PLATE, 1), shin=(PLATE, 1), boot=(IRON, 1), boot_z=.30,
@@ -566,7 +655,10 @@ def build_infantry(lod):
     if lod == 0:
         body(mb, INF)
         mail_hem(mb, INF)
-        kettle_hat(mb)
+        mb.var = HV(0); kettle_hat(mb)
+        mb.var = HV(1); nasal_helm(mb)
+        mb.var = HV(2); arming_cap(mb); chin_beard(mb, (.46, .33, .21))
+        mb.var = 0
         # mail cowl over the shoulders
         mb.loft([(1.435, .200, .128, 'Chest', sh(MAIL, .85), dict(sq=.85)), (1.50, .120, .100, 'Chest', MAIL), (1.565, .068, .074, 'Chest', MAIL)], 8, phase=-PI / 2)
         # side-arm on the right hip
@@ -574,7 +666,10 @@ def build_infantry(lod):
         mb.box((-.180, -.045, 1.07), (.03, .03, .10), DSTEEL, 'Hips', metal=1)
     else:
         body1(mb, INF)
-        mb.cyl((0, 0, 1.715), (0, 0, 1.850), (.172, .184), 0, 6, sh(STEEL, .82), 'Head', metal=1, up=X, col1=STEEL)
+        mb.var = HV(0); mb.cyl((0, 0, 1.715), (0, 0, 1.850), (.172, .184), 0, 6, sh(STEEL, .82), 'Head', metal=1, up=X, col1=STEEL)
+        mb.var = HV(1); mb.cyl((0, 0, 1.705), (0, 0, 1.885), (.098, .110), 0, 6, sh(STEEL, .85), 'Head', metal=1, up=X, col1=STEEL)
+        mb.var = HV(2); mb.cyl((0, 0, 1.700), (0, 0, 1.840), (.092, .106), 0, 6, sh(GAMB, .9), 'Head', up=X, col1=sh(GAMB, 1.1))
+        mb.var = 0
     spear(mb, lod); round_shield(mb, lod)
     return mb
 
@@ -584,14 +679,20 @@ def build_archer(lod):
     M = dict(tint=1, sq=.9)
     if lod == 0:
         body(mb, ARC)
-        nasal_helm(mb)
+        mb.var = HV(0); nasal_helm(mb)
+        mb.var = HV(1); hood_top(mb)
+        mb.var = HV(2); brim_hat(mb)
+        mb.var = 0
         mb.loft([(1.375, .232, .150, 'Chest', sh(TINT, .78), M), (1.465, .200, .128, 'Chest', sh(TINT, .92), M),
                  (1.565, .072, .078, 'Chest', TINT, M)], 10)
         mb.box((-.125, -.118, .985), (.085, .05, .10), LEATH, 'Hips')
     else:
         body1(mb, ARC)
         mb.loft([(1.375, .232, .150, 'Chest', sh(TINT, .78), M), (1.555, .075, .08, 'Chest', TINT, M)], 6)
-        mb.cyl((0, 0, 1.705), (0, 0, 1.885), (.098, .110), 0, 6, sh(STEEL, .85), 'Head', metal=1, up=X, col1=STEEL)
+        mb.var = HV(0); mb.cyl((0, 0, 1.705), (0, 0, 1.885), (.098, .110), 0, 6, sh(STEEL, .85), 'Head', metal=1, up=X, col1=STEEL)
+        mb.var = HV(1); mb.cyl((0, .004, 1.715), (0, .014, 1.850), (.088, .102), 0, 6, sh(TINT, .9), 'Head', tint=1, up=X, col1=TINT)
+        mb.var = HV(2); mb.cyl((0, -.02, 1.715), (0, 0, 1.860), (.140, .160), 0, 6, (.42, .30, .18), 'Head', up=X, col1=(.55, .40, .24))
+        mb.var = 0
     bow(mb, lod); quiver(mb, lod)
     return mb
 
@@ -601,16 +702,23 @@ def build_knight(lod):
     if lod == 0:
         body(mb, KNI)
         mail_hem(mb, KNI)
-        great_helm(mb)
-        plate_bits(mb, KNI, STEEL)
+        mb.var = HV(0) | HV(2); great_helm(mb)
+        mb.var = HV(0)
         mb.tube([(0, .0, 1.815), (0, .02, 1.93), (0, .10, 1.995), (0, .21, 1.93)], [.02, .046, .05, .01], 5, TINT, 'Head', tint=1,
                 cols=[sh(TINT, .8), TINT, TINT, sh(TINT, .85)], cap1=True)
+        mb.var = HV(1); visor_bascinet(mb)
+        mb.var = HV(2); fan_crest(mb)
+        mb.var = 0
+        plate_bits(mb, KNI, STEEL)
         mb.cyl((.185, -.03, 1.03), (.27, .27, .44), .028, .018, 4, DLEATH, 'Hips', cap1=True, col1=GOLD)
     else:
         body1(mb, KNI)
         H = dict(metal=1)
         mb.loft([(1.49, .100, .114, 'Head', sh(STEEL, .75), H), (1.81, .104, .118, 'Head', STEEL, H)], 6, cap_top=True, phase=-PI / 2)
-        mb.cyl((0, 0, 1.80), (0, .17, 1.99), .07, 0, 3, TINT, 'Head', tint=1)
+        mb.var = HV(0); mb.cyl((0, 0, 1.80), (0, .17, 1.99), .07, 0, 3, TINT, 'Head', tint=1)
+        mb.var = HV(1); mb.cyl((0, .01, 1.80), (0, .026, 1.915), (.062, .072), 0, 4, STEEL, 'Head', metal=1, up=X)
+        mb.var = HV(2); mb.plate([(.15, .01, 1.80), (.09, .01, 1.97), (-.09, .01, 1.97), (-.15, .01, 1.80)], Y, .012, sh(TINT, .9), TINT, 'Head', tintf=1, tintb=1)
+        mb.var = 0
     sword(mb, lod); heater_shield(mb, lod)
     return mb
 
@@ -929,10 +1037,14 @@ AO_K = 0.78
 def bake_ao(mb, nrm, M):
     """per-vertex ambient occlusion in the READY pose (how the men stand most of the time)"""
     P = [M[b] @ Vector(v) for v, b in zip(mb.v, mb.b)]
-    polys = [f for f, o in zip(mb.f, mb.fo) if o]
-    bvh = BVHTree.FromPolygons(P, polys, all_triangles=False, epsilon=0.0)
+    # a vertex is only shaded by faces that are drawn together with it (base faces, plus its own variant's)
+    trees = {}
+    for km in set(mb.k):
+        polys = [f for f, o, fk in zip(mb.f, mb.fo, mb.fk) if o and (fk == 0 or (fk & km))]
+        trees[km] = BVHTree.FromPolygons(P, polys, all_triangles=False, epsilon=0.0)
     ao = []
     for i, p in enumerate(P):
+        bvh = trees[mb.k[i]]
         n = (M[mb.b[i]].to_3x3() @ nrm[i]).normalized()
         t = n.cross(Z if abs(n.z) < .9 else X).normalized(); b = n.cross(t)
         o = p + n * 0.012
@@ -946,16 +1058,18 @@ def bake_ao(mb, nrm, M):
         sky = 0.78 + 0.22 * (n.z * 0.5 + 0.5)
         gnd = 0.84 + 0.16 * min(1.0, max(0.0, p.z) / 0.55)
         c = mb.c[i]
-        lo = 0.62 if (c[2] > 0 and abs(c[0] / c[2] - SKIN[0] / SKIN[2]) < .02 and abs(c[1] / c[2] - SKIN[1] / SKIN[2]) < .02) else 0.30
+        lo = 0.84 if (c[2] > 0 and abs(c[0] / c[2] - SKIN[0] / SKIN[2]) < .02 and abs(c[1] / c[2] - SKIN[1] / SKIN[2]) < .02) else 0.30
         ao.append(max(lo, (1.0 - AO_K * min(1.0, occ * 1.5)) * sky * gnd))
     return ao
 
 
-def make_object(name, mb, rig, mat):
+def make_object(name, mb, rig, mat, sel=None):
+    """sel: preview only - keep just the faces drawn for that selection"""
+    keep = [sel is None or k == 0 or (k >> sel) & 1 for k in mb.fk]
     me = bpy.data.meshes.new(name)
-    me.from_pydata(mb.v, [], mb.f)
+    me.from_pydata(mb.v, [], [f for f, w in zip(mb.f, keep) if w])
     me.update()
-    me.polygons.foreach_set('use_smooth', [not f for f in mb.ff])
+    me.polygons.foreach_set('use_smooth', [not f for f, w in zip(mb.ff, keep) if w])
     nrm = [v.normal.copy() for v in me.vertices]
     ao = bake_ao(mb, nrm, AO_M)
     ca = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
@@ -964,7 +1078,8 @@ def make_object(name, mb, rig, mat):
         i = l.vertex_index
         c = lin(sh(mb.c[i], ao[i]))
         ca.data[l.index].color = (c[0], c[1], c[2], 1.0)
-        uvl.data[l.index].uv = (mb.t[i], 1.0 - mb.m[i])   # glTF exporter flips V -> exported V = metal mask
+        # glTF exporter flips V -> exported V = variant mask + 0.5 * metal (preview: plain metal mask)
+        uvl.data[l.index].uv = (mb.t[i], 1.0 - (mb.m[i] if sel is not None else mb.k[i] + 0.5 * mb.m[i]))
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     groups = {}
@@ -1162,14 +1277,32 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.context.scene.render.fps = FPS
 rig = make_rig()
 AO_M = pose_mats(rig, READY)
-mat = make_material(DO_PREVIEW)
+mat = make_material(DO_PREVIEW or DO_PV)
 OBJS = {}
 STAT = {}
+if DO_PV:
+    cells = []
+    for r, (tn, fn) in enumerate((('Infantry', build_infantry), ('Archer', build_archer), ('Knight', build_knight))):
+        for lod in (0, 1):
+            mb = fn(lod)
+            for s in range(6):
+                nm = '%s_%d_s%d' % (tn, lod, s)
+                OBJS[nm] = make_object(nm, mb, rig, mat, sel=s)
+                if lod == 0:
+                    cells.append((OBJS[nm], READY, s, r * 2, TINTS[(r + s) % 5], 0))
+                    cells.append((OBJS[nm], READY if r != 1 else DRAW, s, r * 2 + 1, TINTS[(r + s) % 5], math.radians(150 if r != 1 else 0)))
+                elif s < 3:
+                    cells.append((OBJS[nm], READY, 6 + s, r * 2, TINTS[(r + s) % 5], 0))
+                else:
+                    cells.append((OBJS[nm], READY, 3 + s, r * 2 + 1, TINTS[(r + s) % 5], math.radians(150)))
+    os.makedirs(PREV, exist_ok=True)
+    wall_sheet(PREV + r"\sold_variants.png", cells, 9, 6, px=250)
+    raise SystemExit
 for name, fn, lod in TYPES:
     mb = fn(lod)
-    OBJS[name] = make_object(name, mb, rig, mat)
-    STAT[name] = dict(verts=len(mb.v), tris=mb.tris())
-    print('MESH', name, 'verts', len(mb.v), 'tris', mb.tris())
+    OBJS[name] = make_object(name, mb, rig, mat, sel=0 if DO_PREVIEW else None)
+    STAT[name] = dict(verts=len(mb.v), tris=mb.tris(), tris_drawn=[mb.tris(s) for s in range(6)])
+    print('MESH', name, 'verts', len(mb.v), 'tris', mb.tris(), 'drawn per selection', [mb.tris(s) for s in range(6)])
 open(STATS, 'w').write(json.dumps(STAT, indent=1))
 
 if DO_PREVIEW:

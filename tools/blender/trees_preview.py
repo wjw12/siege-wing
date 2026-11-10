@@ -93,16 +93,24 @@ if 'grove' in which:
 if 'lod' in which:
     # full trees (left of each pair) vs their far LOD stand-ins at the swap distance (~300 m)
     clear()
-    pairs = [('Tree_Pine_A', 'Tree_Pine_LOD', 1), ('Tree_Pine_B', 'Tree_Pine_LOD', 1), ('Tree_Oak_A', 'Tree_Oak_LOD', 1), ('Tree_Oak_B', 'Tree_Oak_LOD', 1), ('Tree_Birch', 'Tree_Oak_LOD', 0.8), ('Tree_Dead', 'Tree_Pine_LOD', 0.45)]
+    pairs = [('Tree_Pine_A', 'Tree_Pine_LOD', 1), ('Tree_Pine_B', 'Tree_Pine_LOD', 1), ('Tree_Oak_A', 'Tree_Oak_LOD', 1), ('Tree_Oak_B', 'Tree_Oak_LOD', 1), ('Tree_Birch', 'Tree_Birch_LOD', 1), ('Tree_Dead', 'Tree_Pine_LOD', 0.45)]
     x = -52
     for a, b_, s in pairs:
         inst(a, x, 0); inst(b_, x + 9, 0, 0, s); x += 21
     shot('tree_lod', (5, -300, 60), (5, 0, 7), 85, (1600, 500))
+if 'lodz' in which:
+    # broadleaf LODs next to their full trees at the game's instance scales, long lens from the swap distance (level and from above)
+    clear()
+    x = -40
+    for a, b_, s in [('Tree_Oak_A', 'Tree_Oak_LOD', 1.16), ('Tree_Oak_B', 'Tree_Oak_LOD', 1.16), ('Tree_Birch', 'Tree_Birch_LOD', 1), ('Tree_Birch', 'Tree_Birch_LOD', 1)]:
+        inst(a, x, 0, x); inst(b_, x + 12, 0, x * 1.7, s); x += 26 if 'Oak' in a else 14
+    shot('tree_lodz1', (0, -260, 30), (0, 0, 6), 110, (1600, 420))
+    shot('tree_lodz2', (0, -200, 170), (0, 0, 6), 110, (1600, 520))
 if 'lodcol' in which:
     # mean rendered colour (linear) + pixel coverage of each full tree vs its LOD, seen from the helicopter at the swap distance
     import numpy as np
     g.hide_render = True; sc.render.film_transparent = True; sc.view_settings.view_transform = 'Standard'
-    for n in ['Tree_Pine_A', 'Tree_Pine_B', 'Tree_Pine_LOD', 'Tree_Oak_A', 'Tree_Oak_B', 'Tree_Oak_LOD', 'Tree_Birch']:
+    for n in ['Tree_Pine_A', 'Tree_Pine_B', 'Tree_Pine_LOD', 'Tree_Oak_A', 'Tree_Oak_B', 'Tree_Oak_LOD', 'Tree_Birch', 'Tree_Birch_LOD']:
         acc = np.zeros(3); cov = 0.0
         for k, az in enumerate((0.0, 2.2, 4.2)):
             clear(); inst(n, 0, 0, az)

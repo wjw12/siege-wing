@@ -25,6 +25,8 @@ mat4 swBone(float row){ float v = (row + 0.5) / uAnimH; float u = (aJ * 3.0 + 0.
   vec4 a = texture2D(uAnim, vec2(u, v)), b = texture2D(uAnim, vec2(u + 1.0 / ${NB * 3}.0, v)), c = texture2D(uAnim, vec2(u + 2.0 / ${NB * 3}.0, v));
   return mat4(a.x, b.x, c.x, 0.0, a.y, b.y, c.y, 0.0, a.z, b.z, c.z, 0.0, a.w, b.w, c.w, 1.0); }
 void swXform(inout vec3 p, inout vec3 n){
+  // variants: floor(uv.y) is a bit mask of the selections (0..5, a stable per-soldier hash of his scale) that draw this vertex; 0 = always. Others collapse to a point.
+  float swK = floor(uv.y + 0.01); if (swK > 0.5 && mod(floor(swK / exp2(floor(fract(iAnim.w * 937.13) * 6.0)) + 0.005), 2.0) < 0.5) p = vec3(0.0, 1.6, 0.0);
   mat4 m = swBone(iAnim.x); if (iAnim.z > 0.001) { mat4 m2 = swBone(iAnim.y); m = m * (1.0 - iAnim.z) + m2 * iAnim.z; }
   p = (m * vec4(p, 1.0)).xyz * iAnim.w; n = normalize(mat3(m) * n);
   float ta = iTint.w; if (abs(ta) > 0.001) { float c = cos(ta), s = sin(ta); p.y -= 0.9; p = vec3(p.x, p.y * c - p.z * s, p.y * s + p.z * c); p.y += 0.9; n = vec3(n.x, n.y * c - n.z * s, n.y * s + n.z * c); }
@@ -86,7 +88,7 @@ export const crowd = {
     const mat = this.mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, vertexColors: true });
     patchMaterial(mat, 'crowd', sh => {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + GLSL_ANIM + '\nvarying vec3 vSwT; varying vec2 vSwM;')
-        .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = vec3(normal); vec3 swP = vec3(position); swXform(swP, objectNormal); vSwT = iTint.rgb; vSwM = uv;')
+        .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = vec3(normal); vec3 swP = vec3(position); swXform(swP, objectNormal); vSwT = iTint.rgb; vSwM = vec2(uv.x, fract(uv.y) * 2.0);')
         .replace('#include <begin_vertex>', 'vec3 transformed = swP;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSwT; varying vec2 vSwM;')
         .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(vec3(0.75), vSwT * 1.5, 0.8), step(0.5, vSwM.x)); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.4 + vSwT * 1.35), 0.5 * smoothstep(80.0, 210.0, length(vViewPosition))); // far blocks keep their heraldic colour')

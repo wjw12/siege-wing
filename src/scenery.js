@@ -117,7 +117,7 @@ export const scenery = {
   // ---------------- forest ----------------
   _forest(scene, rng) {
     const V = assets.village; const types = ['Tree_Pine_A', 'Tree_Pine_B', 'Tree_Oak_A', 'Tree_Oak_B', 'Tree_Birch', 'Tree_Dead'];
-    const geos = types.map(n => mergedGeo(V, n)); const lodPine = mergedGeo(V, 'Tree_Pine_LOD'), lodOak = mergedGeo(V, 'Tree_Oak_LOD');
+    const geos = types.map(n => mergedGeo(V, n)); const lodPine = mergedGeo(V, 'Tree_Pine_LOD'), lodOak = mergedGeo(V, 'Tree_Oak_LOD'), lodBirch = mergedGeo(V, 'Tree_Birch_LOD');
     const dims = [[17, 3.0], [20, 2.6], [12, 5.5], [10, 5.0], [12, 2.0], [8, 1.2]]; // height, crown radius
     const CS = 160; const cells = new Map();
     const SP = 12.5; const R = 2500;
@@ -130,16 +130,16 @@ export const scenery = {
       const hi = smooth(60, 200, y) + (rng() - 0.5) * 0.5; const k = rng();
       const t = hi > 0.55 ? (k < 0.55 ? 0 : k < 0.95 ? 1 : 5) : (k < 0.3 ? 0 : k < 0.45 ? 1 : k < 0.7 ? 2 : k < 0.85 ? 3 : k < 0.96 ? 4 : 5);
       const s = 0.75 + rng() * 0.6; const ry = rng() * TAU;
-      const key = Math.floor(x / CS) + ',' + Math.floor(z / CS); let c = cells.get(key); if (!c) cells.set(key, c = { cx: (Math.floor(x / CS) + 0.5) * CS, cz: (Math.floor(z / CS) + 0.5) * CS, lists: types.map(() => []), lp: [], lo: [], cy: y });
+      const key = Math.floor(x / CS) + ',' + Math.floor(z / CS); let c = cells.get(key); if (!c) cells.set(key, c = { cx: (Math.floor(x / CS) + 0.5) * CS, cz: (Math.floor(z / CS) + 0.5) * CS, lists: types.map(() => []), lp: [], lo: [], lb: [], cy: y });
       const inst = { x, y: y - 0.15, z, ry, s, rx: (rng() - 0.5) * 0.08, rz: (rng() - 0.5) * 0.08 };
-      c.lists[t].push(inst); (t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? { ...inst, s: s * 0.42, sy: s * 1.08 } : t === 5 ? { ...inst, s: s * 0.45 } : inst);
+      c.lists[t].push(inst); (t === 4 ? c.lb : t < 2 || t === 5 ? c.lp : c.lo).push(t === 4 ? inst : t === 5 ? { ...inst, s: s * 0.45 } : t >= 2 ? { ...inst, s: s * 1.16 } : { ...inst, s: s * 1.08 });
       if (r < 1750) { const col = world.addCyl(x, z, Math.max(1.0, dims[t][1] * s * 0.55), y, y + dims[t][0] * s - 1.0, 'tree'); col.hard = true; }
     }
     const fol = this.mats.foliage;
     for (const c of cells.values()) {
       c.full = []; c.lod = [];
       c.lists.forEach((l, i) => { const im = instanced(scene, geos[i], fol, l, true); if (im) { im.visible = false; c.full.push(im); } });
-      for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak]]) { const im = instanced(scene, g, fol, l, false); if (im) c.lod.push(im); }
+      for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak], [c.lb, lodBirch]]) { const im = instanced(scene, g, fol, l, false); if (im) c.lod.push(im); }
       // Identity parents retain the original instance/world transforms and draw order.
       // Bounds enclose the exact child spheres already used by Three.js culling.
       for (const key of ['full', 'lod']) {

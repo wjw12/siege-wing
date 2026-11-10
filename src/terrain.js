@@ -226,7 +226,9 @@ export const terrain = {
           g.c = mix(g.c, vec3(0.30, 0.28, 0.24) * (0.6 + 0.8 * n3), smoothstep(330.0, 600.0, wp.y + n2 * 120.0) * 0.45);
           // ---- forest floor (leaf litter) ----
           float forM = ctl.b * 0.85 * (1.0 - rockM);
-          if (forM > 0.004) { SwS d = swSamp(5, 0.31, 0.047, vec3(0.05, 0.057, 0.026), 0.85); swMix(g, d, swHB(forM, d.h - g.h)); }
+          if (forM > 0.004) { SwS d = swSamp(5, 0.31, 0.047, vec3(0.05, 0.057, 0.026), 0.85); swMix(g, d, swHB(forM, d.h - g.h));
+            // from far off the gaps between crowns close up: let the floor take the canopy's colour so woodland reads as a mass
+            float cf = smoothstep(200.0, 650.0, camD) * smoothstep(0.25, 0.7, ctl.b); g.c = mix(g.c, vec3(0.032, 0.055, 0.02) * (0.65 + 0.7 * n3) * (0.8 + 0.4 * n2), cf * 0.85); g.n *= 1.0 - cf; }
           // ---- trampled mud ----
           float mudM = smoothstep(0.25, 0.6, ctl.r * 0.75 + (n3 - 0.5) * 0.5 + ctl.r * (n2 - 0.3) * 0.6) * (1.0 - rockM);
           if (mudM > 0.004) { SwS d = swSamp(3, 0.39, 0.058, mix(vec3(0.16, 0.115, 0.07), vec3(0.24, 0.185, 0.115), n3), 0.7); swMix(g, d, swHB(mudM * 0.94, (d.h - g.h) * 0.8)); }

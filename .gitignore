@@ -23,3 +23,7 @@ tools/blender_ext/
 Thumbs.db
 desktop.ini
 *.Zone.Identifier
+
+# Blender backup copies made during iteration (the committed *_prev* files predate this rule)
+assets/models/*_prev*.glb
+tools/blender/*_prev*.py

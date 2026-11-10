@@ -256,7 +256,7 @@
   ]
  },
  "Tree_Oak_LOD": {
-  "tris": 47,
+  "tris": 96,
   "mats": [
    "Bark",
    "Leaf"
@@ -265,6 +265,18 @@
    11.6,
    11.2,
    11.0
+  ]
+ },
+ "Tree_Birch_LOD": {
+  "tris": 41,
+  "mats": [
+   "Bark",
+   "Leaf"
+  ],
+  "bbox": [
+   4.01,
+   3.83,
+   11.95
   ]
  },
  "Rock_A": {
