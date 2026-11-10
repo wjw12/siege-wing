@@ -44,7 +44,7 @@ function instanced(scene, geo, mat, list, cast = true) {
   let hasTint = false;
   list.forEach((t, i) => { _q.setFromEuler(_e.set(t.rx || 0, t.ry || 0, t.rz || 0, 'YXZ')); _m.compose(_p.set(t.x, t.y, t.z), _q, _s.set(t.s || 1, t.sy || t.s || 1, t.s || 1)); im.setMatrixAt(i, _m); if (t.tint !== undefined) { hasTint = true; } });
   if (hasTint) list.forEach((t, i) => im.setColorAt(i, _c.setHex(t.tint !== undefined ? t.tint : 0xffffff)));
-  im.castShadow = cast; im.receiveShadow = true; im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); scene.add(im); return im;
+  im.castShadow = cast; im.receiveShadow = true; im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); im.updateMatrix(); im.matrixAutoUpdate = false; scene.add(im); return im;
 }
 
 import { settings as _set } from './input.js';
@@ -140,6 +140,18 @@ export const scenery = {
       c.full = []; c.lod = [];
       c.lists.forEach((l, i) => { const im = instanced(scene, geos[i], fol, l, true); if (im) { im.visible = false; c.full.push(im); } });
       for (const [l, g] of [[c.lp, lodPine], [c.lo, lodOak]]) { const im = instanced(scene, g, fol, l, false); if (im) c.lod.push(im); }
+      // Identity parents retain the original instance/world transforms and draw order.
+      // Bounds enclose the exact child spheres already used by Three.js culling.
+      for (const key of ['full', 'lod']) {
+        const group = new THREE.Group(); group.name = 'forest-' + key;
+        const bounds = new THREE.Sphere().makeEmpty();
+        for (const mesh of c[key]) { group.add(mesh); bounds.union(mesh.boundingSphere); mesh.visible = true; }
+        bounds.radius += 0.001; // conservative floating-point margin
+        group.userData.swSubtreeSphere = bounds;
+        group.userData.swNoShadow = key === 'lod'; // existing LODs never cast PCF shadows
+        group.visible = key === 'lod'; group.matrixAutoUpdate = false;
+        scene.add(group); c[key + 'Group'] = group;
+      }
       this.cells.push(c);
     }
   },
@@ -412,7 +424,7 @@ export const scenery = {
   update(dt, camera) {
     const cx = camera.position.x, cz = camera.position.z;
     // forest LOD
-    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); const near = d < TREE_R; for (const m of c.full) m.visible = near; for (const m of c.lod) m.visible = !near; }
+    for (const c of this.cells) { const d = Math.hypot(c.cx - cx, c.cz - cz); const near = d < TREE_R; c.fullGroup.visible = near; c.lodGroup.visible = !near; }
     this.grassU.uCamG.value.copy(camera.position);
     if (this.millSails) this.millSails.rotation.z += dt * 0.5;
     if (this.windsock) this.windsock.rotation.y = 1.9 + Math.sin(G.time * 0.7) * 0.25 + Math.sin(G.time * 2.3) * 0.06;

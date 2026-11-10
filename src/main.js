@@ -65,6 +65,24 @@ async function boot() {
   heli.bindModel(assets.heli.scene); navLights();
   hud.init(); hud.bindMFD();
   ui.init({ start: startGame, resume, quit, events: G.events });
+  ui.loading(0.9, 'PREPARING SHADERS'); await tick();
+  // Initialize IBL before compiling: environment maps change shader variants.
+  camera.position.set(500, 80, 120); camera.lookAt(-140, 62, 0);
+  sky.update(0, camera.position, camera.position);
+  await renderer.compileAsync(scene, camera);
+  // Compile fullscreen passes too, including shafts that may be offscreen initially.
+  for (const mat of [post.mShaftMask, post.mShaftBlur, post.mPre, post.mDown, post.mUp, post.mFinal, post.mFxaa]) {
+    post.quad.material = mat; await renderer.compileAsync(post.scene, post.cam);
+  }
+  ui.loading(0.97, 'PREPARING GPU'); await tick();
+  scenery.update(0, camera);
+  post.render(scene, camera, sky.sunDir, sky.sunVisible);
+  // Wait asynchronously for queued uploads/shadow work before uncovering the canvas.
+  const gl = renderer.getContext(); const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush();
+  if (fence) {
+    try { while (!gl.isContextLost()) { const status = gl.clientWaitSync(fence, 0, 0); if (status !== gl.TIMEOUT_EXPIRED) break; await new Promise(r => setTimeout(r, 16)); } }
+    finally { gl.deleteSync(fence); }
+  }
   ui.loading(1, 'READY'); await tick();
   dev.log('built in ' + (performance.now() - t0).toFixed(0) + 'ms; soldiers=' + crowd.total);
   input.onUnlock = () => { if (state === 'play' && !paused && !dev.on) pause(); };

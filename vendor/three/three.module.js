@@ -22641,6 +22641,11 @@ function WebGLShadowMap( renderer, objects, capabilities ) {
 
 		if ( object.visible === false ) return;
 
+		// Siege Wing: conservative world-space bounds on immutable forest subtrees.
+		// Test this shadow camera independently; never use main-camera visibility.
+		if ( object.userData.swNoShadow && type !== VSMShadowMap ) return;
+		if ( object.userData.swSubtreeSphere && ! _frustum.intersectsSphere( object.userData.swSubtreeSphere ) ) return;
+
 		const visible = object.layers.test( camera.layers );
 
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
@@ -30184,6 +30189,7 @@ class WebGLRenderer {
 		function projectObject( object, camera, groupOrder, sortObjects ) {
 
 			if ( object.visible === false ) return;
+			if ( object.userData.swSubtreeSphere && ! _frustum.intersectsSphere( object.userData.swSubtreeSphere ) ) return;
 
 			const visible = object.layers.test( camera.layers );
 
