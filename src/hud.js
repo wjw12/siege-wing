@@ -13,6 +13,7 @@ import { settings, keyLabel } from './input.js';
 const _v = new V3(), _v2 = new V3();
 const COL = { fg: 'rgba(226,242,214,0.95)', dim: 'rgba(226,242,214,0.55)', faint: 'rgba(226,242,214,0.28)', amber: '#ffb02e', red: '#ff4a36', good: '#9dff8a', dark: 'rgba(8,12,10,0.55)', panel: 'rgba(10,14,12,0.42)' };
 const FONT = (px, w = 600) => `${w} ${px}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`;
+const _mq = new THREE.Quaternion(), _mv = new V3();
 const MONO = (px, w = 600) => `${w} ${px}px Consolas, "SF Mono", ui-monospace, monospace`;
 
 const _q2d = { x: 0, y: 0 };
@@ -26,12 +27,12 @@ export const hud = {
     G.events.addEventListener('banner', e => { this.banner = { title: e.detail.title, sub: e.detail.sub, t: 0 }; });
     G.events.addEventListener('boulder', e => this.boulders.push({ x: e.detail.x, z: e.detail.z, eta: e.detail.eta, t: 0 }));
     this._bakeMap();
-    this.mfd = [0, 1].map(() => { const c = document.createElement('canvas'); c.width = c.height = 256; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { c, x: c.getContext('2d'), t }; });
+    this.mfd = [0, 1, 2].map(() => { const c = document.createElement('canvas'); c.width = c.height = 256; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return { c, x: c.getContext('2d'), t }; });
     for (const m of this.mfd) { const t = m.t; t.wrapT = THREE.RepeatWrapping; t.repeat.y = -1; t.offset.y = 1; }   // the MFD screens' UVs are vertically flipped in the model
     this.mfdT = 0;
   },
   bindMFD() {
-    ['MFD_L', 'MFD_R'].forEach((n, i) => { const o = heli.nodes[n]; if (o && o.isMesh) { o.material = new THREE.MeshBasicMaterial({ map: this.mfd[i].t, toneMapped: false, fog: false }); o.material.color.setScalar(1.6); } });
+    ['MFD_L', 'MFD_R', 'MFD_C'].forEach((n, i) => { const o = heli.nodes[n]; if (o && o.isMesh) { o.material = new THREE.MeshBasicMaterial({ map: this.mfd[i].t, toneMapped: false, fog: false }); o.material.color.setScalar(1.6); } });
   },
   resize() { const dpr = Math.min(devicePixelRatio || 1, 2); this.w = innerWidth; this.h = innerHeight; this.cv.width = Math.round(this.w * dpr); this.cv.height = Math.round(this.h * dpr); this.dpr = dpr; this.s = clamp(this.h / 900, 0.75, 1.6); },
   msg(text, kind = 'info', dur = 4) { if (this.msgs.length && this.msgs[this.msgs.length - 1].text === text) return; this.msgs.push({ text, kind, t: 0, dur }); if (this.msgs.length > 5) this.msgs.shift(); },
@@ -333,12 +334,51 @@ export const hud = {
   _mfd() {
     // left: tactical map, north-up
     { const m = this.mfd[0], c = m.x; c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#04140a'; c.fillRect(0, 0, 256, 256); c.shadowBlur = 0; this._mapDraw(c, 128, 128, 124, 900, heli.yaw, true);
-      c.fillStyle = '#7dff9a'; c.font = MONO(13, 700); c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('TAC', 8, 6); c.textAlign = 'right'; c.fillText('900M', 248, 6); m.t.needsUpdate = true; }
+      c.fillStyle = '#7dff9a'; c.font = MONO(13, 700); c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('TAC', 8, 6); c.textAlign = 'right'; c.fillText('900M', 248, 6); this._mfdFx(m, 0); m.t.needsUpdate = true; }
     { const m = this.mfd[1], c = m.x; c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#04140a'; c.fillRect(0, 0, 256, 256); c.textBaseline = 'middle'; c.shadowBlur = 0;
       c.fillStyle = '#7dff9a'; c.font = MONO(14, 700); c.textAlign = 'left'; c.fillText('STORES', 10, 16);
       const a = weapons.ammo; [['30MM', a.cannon, 600], ['RKT', a.rockets, 38], ['MSL', a.missiles, 8], ['FLR', a.flares, 6]].forEach((r, i) => { const y = 42 + i * 24; const sel = i === weapons.sel; c.fillStyle = sel ? '#e8ffe0' : '#7dff9a'; c.font = MONO(15, 700); c.textAlign = 'left'; c.fillText((sel ? '>' : ' ') + r[0], 8, y); c.textAlign = 'right'; c.fillText(String(r[1]), 126, y); c.fillStyle = '#1d5a30'; c.fillRect(136, y - 6, 110, 12); c.fillStyle = r[1] / r[2] < 0.2 ? '#ffb02e' : '#7dff9a'; c.fillRect(136, y - 6, 110 * r[1] / r[2], 12); });
       c.fillStyle = '#7dff9a'; c.font = MONO(14, 700); c.textAlign = 'left'; c.fillText('SYSTEMS', 10, 146);
+      if (heli.sub.weapons <= 0 && (this.t * 2 % 1) < 0.6) { c.fillStyle = '#ff4a36'; c.fillRect(134, 8, 114, 17); c.fillStyle = '#04140a'; c.font = MONO(12, 700); c.textAlign = 'center'; c.fillText('WEAPONS FAIL', 191, 17); }
       SUBS.forEach((k, i) => { const v = heli.sub[k]; const y = 168 + i * 14; c.fillStyle = v <= 0 ? '#ff4a36' : v < 50 ? '#ffb02e' : '#7dff9a'; c.font = MONO(12, 700); c.textAlign = 'left'; c.fillText(SUB_NAMES[k], 10, y); c.fillRect(136, y - 4, 110 * v / 100, 8); });
-      m.t.needsUpdate = true; }
+      this._mfdFx(m, 1); m.t.needsUpdate = true; }
+    // centre: sight page — attitude, where the gun is looking, range, lock
+    { const m = this.mfd[2], c = m.x; c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#04140a'; c.fillRect(0, 0, 256, 256); c.shadowBlur = 0; c.textBaseline = 'middle';
+      const G1 = '#7dff9a', G2 = '#2c7a45', K = 2.6;   // px per degree
+      const bank = Math.asin(clamp(heli.right.y, -1, 1)), pit = Math.asin(clamp(heli.fwd.y, -1, 1)) / DEG;
+      c.save(); c.beginPath(); c.rect(6, 26, 244, 196); c.clip(); c.translate(128, 124); c.rotate(bank); c.translate(0, pit * K);
+      c.fillStyle = 'rgba(40,110,60,0.16)'; c.fillRect(-300, 0, 600, 400);
+      c.strokeStyle = G1; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-300, 0); c.lineTo(-22, 0); c.moveTo(22, 0); c.lineTo(300, 0); c.stroke();
+      c.strokeStyle = G2; c.fillStyle = G2; c.font = MONO(10, 700); c.lineWidth = 1;
+      for (let d = -60; d <= 60; d += 10) { if (!d) continue; const y = -d * K, w2 = 26; c.beginPath(); if (d < 0) c.setLineDash([4, 4]); c.moveTo(-w2, y); c.lineTo(-10, y); c.moveTo(10, y); c.lineTo(w2, y); c.stroke(); c.setLineDash([]); c.textAlign = 'right'; c.fillText(String(Math.abs(d)), -w2 - 4, y); }
+      c.restore();
+      // boresight + gun line of sight in the airframe's frame
+      c.strokeStyle = G1; c.lineWidth = 1.5; c.beginPath(); c.moveTo(108, 124); c.lineTo(120, 124); c.lineTo(128, 132); c.lineTo(136, 124); c.lineTo(148, 124); c.stroke();
+      _mq.copy(heli.q).invert(); _mv.copy(heli.aimDir).applyQuaternion(_mq);
+      const ax = clamp(128 + Math.atan2(_mv.x, -_mv.z) / DEG * K, 20, 236), ay = clamp(124 - Math.asin(clamp(_mv.y, -1, 1)) / DEG * K, 38, 210);
+      const lk = weapons.lock, locked = lk.locked, col = locked ? '#e8ffe0' : weapons.sel === 2 && lk.target ? '#ffb02e' : G1;
+      c.strokeStyle = col; c.lineWidth = 2; const b = 13; for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { c.beginPath(); c.moveTo(ax + sx * b, ay + sy * (b - 6)); c.lineTo(ax + sx * b, ay + sy * b); c.lineTo(ax + sx * (b - 6), ay + sy * b); c.stroke(); }
+      c.fillStyle = col; c.fillRect(ax - 1, ay - 1, 3, 3);
+      // header / footer
+      c.fillStyle = G1; c.font = MONO(13, 700); c.textAlign = 'left'; c.fillText('SIGHT', 8, 13); c.textAlign = 'right'; c.fillText(['30MM', 'RKT', 'MSL'][weapons.sel] || '', 248, 13);
+      const hdg = ((-heli.yaw / DEG) % 360 + 360) % 360; c.textAlign = 'center'; c.fillText(String(Math.round(hdg)).padStart(3, '0') + '°', 128, 13);
+      c.font = MONO(12, 700); c.textAlign = 'left'; c.fillText('RNG ' + (weapons.ccipValid ? Math.round(weapons.ccipDist) + 'M' : '----'), 8, 240);
+      c.textAlign = 'right'; if (weapons.sel === 2 && lk.target) { c.fillStyle = col; c.fillText(locked ? 'LOCKED' : 'LOCKING', 248, 240); c.fillRect(172, 226, 76 * sat(lk.t / 2), 3); } else c.fillText('AGL ' + Math.round(heli.agl), 248, 240);
+      if (threats.aimWarn > 0 && (this.t * 4 % 1) < 0.6) { c.fillStyle = '#ff4a36'; c.fillRect(78, 196, 100, 18); c.fillStyle = '#04140a'; c.textAlign = 'center'; c.fillText('BALLISTA', 128, 206); }
+      this._mfdFx(m, 2); m.t.needsUpdate = true; }
+  },
+  // battle damage on the displays: tearing and dropouts as the hull goes, cracked glass and dead zones when it is nearly gone
+  _mfdFx(m, i) {
+    const c = m.x, cv = m.c; const hurt = heli.state === 'crashing' ? 1 : sat((60 - heli.hull) / 45); if (hurt <= 0) return;
+    const R = (a, b2) => a + Math.random() * (b2 - a);
+    const tears = Math.floor(hurt * 5 * Math.random() + hurt * 1.5); for (let k = 0; k < tears; k++) { const y = R(0, 240) | 0, h2 = R(3, 22) | 0, dx = R(-34, 34) * hurt | 0; c.drawImage(cv, 0, y, 256, h2, dx, y, 256, h2); if (Math.random() < 0.4) { c.fillStyle = `rgba(125,255,154,${R(0.08, 0.3)})`; c.fillRect(0, y, 256, 1); } }
+    const blocks = Math.floor(hurt * 7 * Math.random()); for (let k = 0; k < blocks; k++) { c.fillStyle = Math.random() < 0.5 ? '#04140a' : `rgba(125,255,154,${R(0.2, 0.7)})`; c.fillRect(R(0, 240) | 0, R(0, 240) | 0, R(6, 50) | 0, R(2, 9) | 0); }
+    if (hurt > 0.45 && Math.random() < 0.12 * hurt) { c.fillStyle = 'rgba(2,8,4,0.86)'; c.fillRect(0, 0, 256, 256); }
+    if (heli.hull < 28 || heli.state === 'crashing') {   // the same fracture every refresh: seeded per screen
+      let sd = 77 + i * 131; const rs = () => (sd = (sd * 16807) % 2147483647) / 2147483647; const x0 = 40 + rs() * 176, y0 = 40 + rs() * 176;
+      c.fillStyle = 'rgba(2,6,3,0.92)'; c.beginPath(); c.moveTo(x0, y0); const a0 = rs() * TAU; for (let k = 0; k <= 5; k++) { const a = a0 + k / 5 * 1.3, r = 150 + rs() * 120; c.lineTo(x0 + Math.cos(a) * r, y0 + Math.sin(a) * r); } c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(210,235,225,0.75)'; c.lineWidth = 1; for (let k = 0; k < 9; k++) { let a = rs() * TAU, x = x0, y = y0; c.beginPath(); c.moveTo(x, y); for (let j = 0; j < 6; j++) { a += (rs() - 0.5) * 0.7; const l = 12 + rs() * 34; x += Math.cos(a) * l; y += Math.sin(a) * l; c.lineTo(x, y); } c.stroke(); }
+      c.fillStyle = 'rgba(225,240,232,0.8)'; c.beginPath(); c.arc(x0, y0, 3.5, 0, TAU); c.fill();
+    }
   },
 };

@@ -1,0 +1,30 @@
+{
+ "Infantry": {
+  "verts": 734,
+  "tris": 1046
+ },
+ "Archer": {
+  "verts": 678,
+  "tris": 1023
+ },
+ "Knight": {
+  "verts": 743,
+  "tris": 1122
+ },
+ "Warlord": {
+  "verts": 856,
+  "tris": 1277
+ },
+ "Infantry_LOD1": {
+  "verts": 139,
+  "tris": 157
+ },
+ "Archer_LOD1": {
+  "verts": 127,
+  "tris": 171
+ },
+ "Knight_LOD1": {
+  "verts": 116,
+  "tris": 147
+ }
+}

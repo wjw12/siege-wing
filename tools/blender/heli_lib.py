@@ -263,7 +263,7 @@ def limb(mb, a, b, r0, r1, mat, tint, seg=10):
     P_sphere(mb, b, r1, mat, tint, seg=seg, rings=6)
 
 
-def build(mb, name, origin=(0, 0, 0), rot=None, parent=None, smooth_angle=38, uvscale=0.5):
+def build(mb, name, origin=(0, 0, 0), rot=None, parent=None, smooth_angle=38, uvscale=0.25):
     Mw = Matrix.Translation(Vector(origin))
     if rot is not None:
         Mw = Mw @ rot.to_4x4()
@@ -379,3 +379,107 @@ def dquad(mb, pts, mat, tint):
     """Double-sided polygon with separate vertices per side."""
     a = [mb.addv(p, tint) for p in pts]; mb.addf(a, mat)
     b = [mb.addv(p, tint) for p in pts]; mb.addf(b[::-1], mat)
+
+
+# ---------------------------------------------------------------- detail helpers (exterior remodel)
+def basis(n, up=(0, 0, 1)):
+    """3x3 with columns (x, y, n): y is 'up' projected into the plane, x = y cross n."""
+    n = Vector(n).normalized(); up = Vector(up)
+    x = up.cross(n)
+    if x.length < 1e-5:
+        x = Vector((1, 0, 0)).cross(n)
+        if x.length < 1e-5: x = Vector((0, 1, 0)).cross(n)
+    x.normalize(); y = n.cross(x)
+    return Matrix((x, y, n)).transposed()
+
+
+def P_plate(mb, c, n, up, w, h, t, mat, tint, bevel=0.0, seg=1, sink=0.0):
+    """Box (w along x, h along 'up', t thick) sitting on surface point c with outward normal n."""
+    R = basis(n, up)
+    P_box(mb, Vector(c) + Vector(n).normalized() * (t / 2 - sink), (w, h, t), mat, tint, bevel, rot=R, seg=seg)
+
+
+def P_poly(mb, pts, mat, tint, nrm=None, uv=None):
+    ids = [mb.addv(p, tint) for p in pts]
+    if nrm is not None:
+        c = sum(pts, Vector((0, 0, 0))) / len(pts); nr = Vector((0, 0, 0))
+        for k in range(len(pts)):
+            nr += (pts[k] - c).cross(pts[(k + 1) % len(pts)] - c)
+        if nr.dot(Vector(nrm)) < 0:
+            ids.reverse()
+            if uv: uv = list(reversed(uv))
+    mb.addf(ids, mat, uv)
+
+
+def P_disc(mb, c, n, r, mat, tint, seg=6, lift=0.003):
+    R = basis(n); c = Vector(c) + Vector(n).normalized() * lift
+    ids = [mb.addv(c + R @ Vector((r * math.cos(2 * math.pi * k / seg), r * math.sin(2 * math.pi * k / seg), 0)), tint) for k in range(seg)]
+    mb.addf(ids, mat)
+
+
+def P_bolt(mb, c, n, r, h, mat, tint, seg=6):
+    P_revolve(mb, c, n, [(0, r), (h, r)], mat, tint, seg=seg, cap0=False)
+
+
+def P_rivets(mb, a, b, n, mat, tint, step=0.07, r=0.0055, ends=True):
+    a = Vector(a); b = Vector(b); L = (b - a).length
+    k = max(1, int(round(L / step)))
+    for i in range(0 if ends else 1, k + (1 if ends else 0)):
+        P_disc(mb, a + (b - a) * (i / k), n, r, mat, tint)
+
+
+def P_tube(mb, pts, r, mat, tint, seg=8, cap=True, radii=None):
+    """Round tube through a polyline (parallel-transported frame)."""
+    pts = [Vector(p) for p in pts]; n = len(pts)
+    rings = []; u = None
+    for i in range(n):
+        t = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized()
+        if u is None: u = t.orthogonal().normalized()
+        u = (u - t * u.dot(t)).normalized(); w = t.cross(u)
+        rr = radii[i] if radii else r
+        rings.append([pts[i] + (u * math.cos(2 * math.pi * k / seg) + w * math.sin(2 * math.pi * k / seg)) * rr for k in range(seg)])
+    P_loft(mb, rings, mat, tint, closed=True, cap0=cap, cap1=cap)
+
+
+def bezier(p0, p1, p2, p3, n=8):
+    p0, p1, p2, p3 = [Vector(p) for p in (p0, p1, p2, p3)]
+    out = []
+    for i in range(n + 1):
+        t = i / n; s = 1 - t
+        out.append(p0 * s ** 3 + p1 * 3 * s * s * t + p2 * 3 * s * t * t + p3 * t ** 3)
+    return out
+
+
+def P_patch(mb, fn, us, vs, off, mat, tint, skirt=None, uvfn=None, skirt_tint=None, skirt_mat=None):
+    """Raised panel following a parametric surface; fn(u, v) -> (point, outward normal)."""
+    nu, nv = len(us), len(vs)
+    g = [[fn(u, v) for v in vs] for u in us]
+    P = [[p + n * off for (p, n) in row] for row in g]
+    ids = [[mb.addv(P[i][j], tint) for j in range(nv)] for i in range(nu)]
+    acc = 0.0
+    for i in range(nu - 1):
+        for j in range(nv - 1):
+            a, b, c = P[i][j], P[i + 1][j], P[i + 1][j + 1]
+            acc += (b - a).cross(c - a).dot(g[i][j][1])
+    flip = acc < 0
+    for i in range(nu - 1):
+        for j in range(nv - 1):
+            f = [ids[i][j], ids[i + 1][j], ids[i + 1][j + 1], ids[i][j + 1]]
+            uv = [uvfn(us[i], vs[j]), uvfn(us[i + 1], vs[j]), uvfn(us[i + 1], vs[j + 1]), uvfn(us[i], vs[j + 1])] if uvfn else None
+            if flip:
+                f.reverse()
+                if uv: uv.reverse()
+            mb.addf(f, mat, uv)
+    if skirt is not None:
+        bi = [(i, 0) for i in range(nu)] + [(nu - 1, j) for j in range(1, nv)] + \
+             [(i, nv - 1) for i in range(nu - 2, -1, -1)] + [(0, j) for j in range(nv - 2, 0, -1)]
+        top = [P[i][j] for i, j in bi]; bot = [g[i][j][0] + g[i][j][1] * skirt for i, j in bi]
+        P_loft(mb, [top, bot], skirt_mat or mat, skirt_tint or tint, closed=True)
+    return g
+
+
+def chring(y, x0, x1, z0, z1, c=0.03, c2=None):
+    """Chamfered rectangle in the XZ plane at y (8 points, starting top-inner, going outward)."""
+    c2 = c if c2 is None else c2
+    return [Vector((x0 + c2, y, z1)), Vector((x1 - c, y, z1)), Vector((x1, y, z1 - c)), Vector((x1, y, z0 + c)),
+            Vector((x1 - c, y, z0)), Vector((x0 + c2, y, z0)), Vector((x0, y, z0 + c2)), Vector((x0, y, z1 - c2))]

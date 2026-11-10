@@ -7,6 +7,7 @@ import { post } from './post.js';
 import { dev, Q } from './dev.js';
 import { input, settings } from './input.js';
 import { heli, SUBS } from './heli.js';
+import { damage } from './damage.js';
 import { fx } from './fx.js';
 import { audio } from './audio.js';
 import { director } from './director.js';
@@ -22,7 +23,8 @@ import { ui } from './ui.js';
 
 dev.init();
 installShaderPatches();
-const QUALITY = { high: { px: 1.5, maxW: 1920, shadow: 4096 }, medium: { px: 1.0, maxW: 1600, shadow: 2048 }, low: { px: 0.8, maxW: 1280, shadow: 1024 } }[Q.get('q') || settings.quality] || { px: 1.5, maxW: 1920, shadow: 4096 };
+const QUALITY = { high: { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 }, medium: { px: 1.0, maxW: 1600, shadow: 2048, tex: 1024, aniso: 8, ss: 1 }, low: { px: 0.8, maxW: 1280, shadow: 1024, tex: 512, aniso: 4, ss: 1 } }[Q.get('q') || settings.quality] || { px: 1.5, maxW: 1920, shadow: 4096, tex: 1024, aniso: 16, ss: 1.3 };
+if (Q.has('ss')) QUALITY.ss = +Q.get('ss');
 const canvas = document.getElementById('c');
 const renderer = G.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: false });
 renderer.shadowMap.enabled = !Q.has('noshadow'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -30,7 +32,15 @@ renderer.toneMapping = THREE.NoToneMapping; renderer.info.autoReset = false;
 const scene = G.scene = new THREE.Scene();
 const camera = G.camera = new THREE.PerspectiveCamera(70, 1, 0.6, 14000);
 post.init(renderer);
-function resize() { const w = innerWidth, h = innerHeight; const pr = Math.min(devicePixelRatio || 1, QUALITY.maxW / w, QUALITY.px); renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); post.resize(Math.round(w * pr), Math.round(h * pr)); }
+let ssCur = QUALITY.ss; // supersampling factor for the 3D scene (anti-aliasing); stepped down automatically if the GPU can't hold frame rate
+function resize() { const w = innerWidth, h = innerHeight; const pr = Math.min(devicePixelRatio || 1, QUALITY.maxW / w, QUALITY.px); renderer.setPixelRatio(pr); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const ow = Math.round(w * pr), oh = Math.round(h * pr); const ss = Math.min(ssCur, Math.max(1, 2880 / ow)); post.resize(ow, oh, ss); }
+const ssGov = { t: 0, n: 0, acc: 0 };
+function ssGovern(rdt, active) { // called once per rendered frame with the real frame time
+  if (!active || ssCur <= 1 || Q.has('ss')) { ssGov.n = 0; ssGov.acc = 0; return; }
+  ssGov.acc += Math.min(rdt, 0.1); ssGov.n++;
+  if (ssGov.n >= 150) { const avg = ssGov.acc / ssGov.n; ssGov.n = 0; ssGov.acc = 0; if (avg > 1 / 48) { ssCur = ssCur > 1.16 ? 1.15 : 1; resize(); dev.log('SS ' + ssCur + ' avgMs=' + (avg * 1000).toFixed(1)); } }
+}
 addEventListener('resize', resize); resize();
 input.init(canvas);
 
@@ -41,10 +51,10 @@ async function boot() {
   const t0 = performance.now();
   director.init(); // audio: start streaming the sample bank, first-gesture init, event wiring
   ui.loading(0.05, 'LOADING MODELS');
-  await loadAssets(p => ui.loading(0.05 + p * 0.3));
+  await loadAssets(p => ui.loading(0.05 + p * 0.3), QUALITY.tex, Math.min(QUALITY.aniso, renderer.capabilities.getMaxAnisotropy()));
   ui.loading(0.4, 'RAISING THE VALLEY'); await tick();
   terrain.build(scene); await tick();
-  sky.build(scene); sky.sun.shadow.mapSize.set(QUALITY.shadow, QUALITY.shadow);
+  sky.build(scene); sky.sun.shadow.mapSize.set(QUALITY.shadow, QUALITY.shadow); sky.sun2.shadow.mapSize.set(QUALITY.shadow, QUALITY.shadow);
   fx.init(scene); fx.onShake = s => { heli.shake = Math.min(2.5, heli.shake + s); };
   ui.loading(0.55, 'BUILDING THE CASTLE'); await tick();
   castle.build(scene);
@@ -101,14 +111,17 @@ function resume() { if (state !== 'play') return; paused = false; input.enabled 
 function quit() { audio.resume(); audio.stopAll(); toMenu(); }
 
 // ---------- dev helpers ----------
-let auto = null, cams = null, nShots = 0, logT = 0;
+let auto = null, hcams = null, cams = null, nShots = 0, logT = 0;
 function devSetup() {
   auto = Q.get('auto'); if (auto) input.virtual = { held: new Set(), hit: new Set(), dx: 0, dy: 0 };
+  hcams = Q.get('hcam') ? Q.get('hcam').split(';').map(c => c.split(',').map(Number)) : null;
   cams = Q.get('cams') ? Q.get('cams').split(';').map(c => c.split(',').map(Number)) : null; nShots = dev.shots.length;
   if (Q.get('pos')) { const sp = Q.get('pos').split(',').map(Number); heli.reset(sp[0], sp[1], sp[2], parseFloat(Q.get('yaw') || '90') * DEG, parseFloat(Q.get('spd') || '0')); }
   if (Q.get('phase')) { mission.setPhase(+Q.get('phase'), true); }
   if (Q.get('time')) mission.time = +Q.get('time');
   if (Q.get('kill')) setTimeout(() => castle.destroy(castle.towers[parseInt(Q.get('kill'))]), 2500);
+  if (Q.get('dmg')) setTimeout(() => { const n = +Q.get('dmg'); for (let i = 0; i < n; i++) heli.hit({ hull: 0, sub: 'canopy', subDmg: i % 3 ? 3 : 12, kind: 'arrows' }); heli.hit({ hull: 5, sub: 'hyd', subDmg: 60, kind: 'test' }); if (Q.has('hurt')) heli.hull = +Q.get('hurt'); }, 1500);
+  if (Q.get('look')) { const ls = Q.get('look').split(';').map(c => c.split(',').map(Number)); heli.devLook = ls[0]; if (ls.length > 1) setInterval(() => { heli.devLook = ls[Math.min(ls.length - 1, nShots - dev.shots.length)]; }, 100); }   // dev: cockpit free-look per shot — look=yaw,pitch;...
   if (Q.has('god')) heli.hit = () => { };
   dev.capture = () => { const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height; const x = c.getContext('2d'); x.drawImage(canvas, 0, 0); if (!Q.has('nohud')) x.drawImage(hud.cv, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.9); };
   dev.extra = () => `prof=${JSON.stringify(Object.fromEntries(Object.entries(dev.prof || {}).map(([k, v]) => [k, +v.toFixed(1)])))}${(dev.prof = {}) && ''} fx=${fx.n} arrows=${threats.na} killed=${crowd.killed} hull=${heli.hull.toFixed(0)} phase=${mission.phase} st=${mission.state}/${heli.state}${dev.am ? ` audio={pk:${dev.am.pk.toFixed(2)},rms:${(dev.am.rms / dev.am.n).toFixed(3)},clipFrames:${dev.am.clip}/${dev.am.n},lo:${(dev.am.lo / dev.am.n | 0)},mid:${(dev.am.mid / dev.am.n | 0)},hi:${(dev.am.hi / dev.am.n | 0)},ctx:${audio.context && audio.context.state}}` : ''}${(dev.am = null) || ''}`;
@@ -171,6 +184,7 @@ function botPlay(v, t, dt) {
     const aim = Math.atan2(tgt.y - p.y, dh) + 0.03; const tp = bot.eg > 0 ? -0.22 : dh > 430 ? -0.28 : Math.max(aim, -0.85);
     if (heli.agl > 10) { v.dy = clamp((tp - heli.pitch) * 60, -30, 30); v.dx = -clamp((0 - heli.roll) * 60, -30, 30); }
     if (bot.eg <= 0 && dh < 440 && dh > 200 && Math.abs(ye) < 0.05 && Math.abs(heli.pitch - tp) < 0.04) v.held.add('fire');
+    if (dev.on && (bot.dbg2 = (bot.dbg2 || 0) + dt) > 3) { bot.dbg2 = 0; dev.log(`BOT RUN t=${t.toFixed(0)} dh=${dh.toFixed(0)} eg=${bot.eg.toFixed(1)} ye=${ye.toFixed(2)} pitch=${heli.pitch.toFixed(2)} tp=${tp.toFixed(2)} sel=${weapons.sel} rk=${weapons.ammo.rockets} spd=${heli.speed.toFixed(0)}`); }
     return;
   }
   // hold a position east of the target at standoff
@@ -201,7 +215,7 @@ function botPlay(v, t, dt) {
 }
 // ---------- main loop ----------
 let last = performance.now();
-const focus = new V3(), camDir = new V3(), listenerR = new V3();
+const focus = new V3(), camDir = new V3(), listenerR = new V3(); const nearFocus = new V3(), _nf = new V3();
 function frame(now) {
   requestAnimationFrame(frame); const fT0 = performance.now();
   const rdt = Math.min((now - last) / 1000, 0.05); last = now;
@@ -218,7 +232,7 @@ function frame(now) {
     camera.position.set(cxm + Math.cos(a) * r + 200, 58 + Math.sin(menuT * 0.07) * 16, czm + Math.sin(a) * r * 0.75); camera.up.set(0, 1, 0);
     camera.lookAt(-140, 62, 0); camera.fov = 50; camera.near = 0.6; camera.updateProjectionMatrix();
     focus.set(160, 26, 0);
-    sky.update(dt, focus, 300);
+    sky.update(dt, focus, focus);
   } else if (state === 'play') {
     if (dt > 0) {
       for (let k = 1; k < SPEED; k++) { playStep(dt); fx.update(dt, camera); T += dt; G.time = T; G.U.uTime.value = T; }
@@ -229,10 +243,16 @@ function frame(now) {
         if (!endShown && mission.endT > (mission.state === 'won' ? 4.5 : heli.state === 'crashing' ? 9 : 4.2) || (!endShown && heli.state === 'dead' && heli.crashT > 3.6 && mission.state === 'lost')) { endShown = true; input.enabled = false; input.unlock(); ui.showEnd(mission.state === 'won', mission.cause, mission.score, mission.result); dev.log('END ' + mission.state + ' cause=' + mission.cause + ' score=' + mission.score + ' ' + JSON.stringify(mission.result)); if (dev.on && Q.has('endstop')) setTimeout(() => dev.log('DONE'), 600); }
       }
     }
-    heli.updateCamera(dt, camera);
+    heli.updateCamera(dt, camera); damage.update(dt, camera);
+    if (hcams) { const c = hcams[Math.min(hcams.length - 1, nShots - dev.shots.length)]; const az = c[1] * DEG, el = c[2] * DEG; camera.position.set(Math.sin(az) * Math.cos(el) * c[0], Math.sin(el) * c[0], -Math.cos(az) * Math.cos(el) * c[0]).applyQuaternion(heli.q).add(heli.pos); camera.up.set(0, 1, 0); camera.lookAt(heli.pos.x, heli.pos.y + (c[4] || 0), heli.pos.z); camera.fov = c[3] || 40; camera.near = 0.3; camera.updateProjectionMatrix(); }   // dev: inspect the helicopter — hcam=dist,azimuth(0=nose),elevation[,fov[,lookY]];...
     if (cams) { const c = cams[Math.min(cams.length - 1, nShots - dev.shots.length)]; camera.position.set(c[0], c[1], c[2]); camera.up.set(0, 1, 0); camera.lookAt(c[3], c[4], c[5]); camera.fov = c[6] || 60; camera.updateProjectionMatrix(); }
     focus.copy(heli.pos); if (!heli.cockpit) focus.lerp(heli.cam.look, 0.35);
-    sky.update(dt, focus, clamp(130 + heli.agl * 1.5, 150, 330));
+    { // tight shadow cascade follows the ground the camera is looking at (kept within 260 m so it stays useful)
+      camera.getWorldDirection(camDir); let d = terrain.raycast(camera.position, camDir, 260, 6); if (d < 0) d = 260;
+      _nf.copy(camera.position).addScaledVector(camDir, d); _nf.y = terrain.height(_nf.x, _nf.z) + 4;
+      if (nearFocus.distanceToSquared(_nf) > 400 * 400) nearFocus.copy(_nf); else nearFocus.lerp(_nf, 1 - Math.exp(-dt * 5));
+    }
+    sky.update(dt, focus, nearFocus);
     // nav lights
     const bl = (T % 1.1) < 0.12; if (heli.beacon) heli.beacon.visible = bl; const nv = G.U.uNight.value > 0.1 || (T % 1.6) < 0.8; if (heli.navL) { heli.navL.visible = nv; heli.navR.visible = nv; }
   }
@@ -260,10 +280,11 @@ function frame(now) {
   const pp = post.p; pp.exposure = sky.exposure;
   pp.damage = state === 'play' ? clamp(heli.hitFlash * 0.7 + (heli.hull < 30 && heli.state === 'fly' ? 0.18 + 0.12 * Math.sin(T * 6) : 0), 0, 1) : 0;
   pp.edgeDark = state === 'play' ? damp(pp.edgeDark, mission.outside ? 0.6 : mission.warnBand ? 0.12 : 0, 4, rdt) : 0;
-  pp.dof = state === 'play' && heli.cockpit && heli.state === 'fly' ? 0.12 : 0;
+  pp.dof = state === 'play' && heli.cockpit && heli.state === 'fly' ? 0.012 : 0;   // only a trace of near blur: the panel has to stay readable
   pp.desat = damp(pp.desat, state === 'play' && mission.state === 'lost' ? 0.55 : 0, 1.5, rdt);
   pp.vignette = state === 'menu' ? 0.5 : heli.gunner ? 0.5 : 0.32;
   if (pendingFade > 0 && --pendingFade === 0) ui.fade(false);
+  ssGovern(rdt, state === 'play' && !paused && playT > 6);
   { const a0 = performance.now(); post.render(scene, camera, sky.sunDir, sky.sunVisible); const a1 = performance.now(); if (!Q.has('nohuddraw')) hud.draw(rdt, paused ? 'paused' : state); if (dev.on) { const P = dev.prof = dev.prof || {}; if (!(P.render > a1 - a0)) P.render = a1 - a0; const d = performance.now() - a1; if (!(P.hud > d)) P.hud = d; } }
   input.endFrame();
   if (dev.on) { const P = dev.prof = dev.prof || {}; const d = performance.now() - fT0; if (!(P.frame > d)) P.frame = d; }

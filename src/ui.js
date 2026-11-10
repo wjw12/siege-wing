@@ -12,7 +12,7 @@ export const ui = {
   fade(on) { $('fade').style.opacity = on ? 1 : 0; },
   init(cb) {
     this.cb = cb;
-    const click = (id, f, snd = 'uiClick') => $(id).addEventListener('click', e => { audio.play(snd); f(e); });
+    const click = (id, f, snd = 'uiClick') => (typeof id === 'string' ? $(id) : id).addEventListener('click', e => { audio.play(snd); f(e); });
     document.querySelectorAll('button,.card').forEach(b => b.addEventListener('mouseenter', () => audio.play('uiHover', { gain: 0.5 })));
     document.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => { settings.mode = c.dataset.mode; saveSettings(); audio.play('uiClick'); this.refresh(); }));
     click('btnFly', () => { if (settings.hideHelp) cb.start(false); else this.showHelp('start'); });
@@ -20,6 +20,10 @@ export const ui = {
     click('btnPHelp', () => this.showHelp('pause'));
     click('btnHelpGo', () => cb.start(false));
     click('btnHelpBack', () => this.show(this.helpFrom === 'pause' ? 'pause' : 'menu'), 'uiBack');
+    click('btnHelpPrev', () => this.helpPage(this.hp - 1)); click('btnHelpNext', () => this.helpPage(this.hp + 1));
+    document.querySelectorAll('#helpTabs button').forEach(b => click(b, () => this.helpPage(+b.dataset.p)));
+    document.querySelectorAll('#helpDots i').forEach((d, i) => d.addEventListener('click', () => { audio.play('uiClick'); this.helpPage(i); }));
+    addEventListener('keydown', e => { if (this.current !== 'help') return; if (e.code === 'ArrowRight' || e.code === 'PageDown') this.helpPage(this.hp + 1, true); else if (e.code === 'ArrowLeft' || e.code === 'PageUp') this.helpPage(this.hp - 1, true); });
     $('helpSkip').addEventListener('change', e => { settings.hideHelp = e.target.checked; saveSettings(); this.refresh(); });
     $('optHelp').addEventListener('change', e => { settings.hideHelp = !e.target.checked; saveSettings(); });
     $('optSubs').addEventListener('change', e => { settings.subtitles = e.target.checked; saveSettings(); if (!e.target.checked) this.clearSubs(); });
@@ -65,18 +69,44 @@ export const ui = {
       row.appendChild(sp); row.appendChild(b); bd.appendChild(row);
     }
   },
-  // the flying guide: from === 'start' (before take-off), 'menu' or 'pause'
+  // the flying guide, three pages: from === 'start' (before take-off), 'menu' or 'pause'
+  helpPage(i, snd) {
+    i = Math.max(0, Math.min(2, i)); if (snd && i !== this.hp) audio.play('uiClick'); this.hp = i;
+    document.querySelectorAll('#help .gpage').forEach(p => p.classList.toggle('on', +p.dataset.p === i));
+    document.querySelectorAll('#helpTabs button').forEach(b => b.classList.toggle('sel', +b.dataset.p === i));
+    document.querySelectorAll('#helpDots i').forEach((d, j) => d.classList.toggle('on', j === i));
+    $('btnHelpPrev').disabled = i === 0; $('btnHelpNext').disabled = i === 2;
+    const pnl = document.querySelector('#help .panel'); if (pnl) pnl.scrollTop = 0;
+  },
   showHelp(from) {
     this.helpFrom = from; const k = settings.keys, kb = (...a) => a.map(x => `<kbd>${keyLabel(k[x])}</kbd>`).join(' '), my = settings.mouseX === 'yaw';
-    const mode = settings.mode;
-    $('helpMode').innerHTML = mode === 'assault' ? 'ASSAULT handling — the helicopter holds its altitude when you let go of the collective. It does not stop or level by itself.' : mode === 'stabilized' ? 'STABILIZED handling — let go of the mouse and it levels and brakes to a hover.' : 'PUNISHING handling — nothing is held for you: no altitude hold, no levelling, and torque swings the nose when you change power.';
-    const row = (keys, txt) => `<span class="k">${keys}</span><span>${txt}</span>`;
-    $('helpKeys').innerHTML = row(kb('collUp', 'collDown'), '<b>Collective</b> — climb / descend. It does not move you forward.') + row(kb('yawL', 'yawR'), '<b>Yaw</b> — swing the nose left / right.') + row(kb('rollL', 'rollR'), '<b>Roll</b> — bank left / right.')
-      + row(kb('wpn1', 'wpn2', 'wpn3'), '<b>Cannon / rockets / missiles</b> (or mouse wheel).') + row(kb('flares'), '<b>Flares</b> — break a ballista\'s aim.') + row(kb('view') + ' ' + kb('freelook'), '<b>Cockpit view</b> / hold to <b>look around</b>.') + row('<kbd>Esc</kbd> ' + kb('restart'), '<b>Pause menu</b> / <b>restart</b> the run.');
-    $('helpMouse').innerHTML = `<b>Move forward / back</b> — pitch the nose down / up.<br><b>Move left / right</b> — ${my ? 'yaw the nose' : 'roll (bank)'}.<br><i style="background:rgba(255,176,46,.5)"></i><b>${keyLabel(k.fire)}</b> — fire the selected weapon.<br><i style="background:rgba(120,200,255,.3)"></i><b>Hold ${keyLabel(k.gunner)}</b> — gunner sight: the mouse aims the cannon, the helicopter flies on.<br><b>Wheel</b> — next weapon.`;
-    $('helpSteps').innerHTML = [`<b>Go forward:</b> push the mouse forward to tip the nose down about 15°. The helicopter accelerates for as long as the nose is down.`, `<b>Hold speed:</b> ease the nose back toward level.`, `<b>Stop:</b> pull the nose up (flare) until the speed bleeds off, then level out.`, `<b>Turn:</b> ${my ? 'move the mouse sideways to yaw, and bank with ' + kb('rollL', 'rollR') : 'bank with the mouse and add ' + kb('yawL', 'yawR') + ' to bring the nose round'}. At speed, bank and pull back slightly.`, `<b>Shoot:</b> rockets fly where the nose points — dive at the target. For the cannon hold ${kb('gunner')} and aim with the mouse. Missiles: select ${kb('wpn3')}, keep the box on a tower for 2 s, fire on the tone.`, `<b>Land on the pad</b> (H on the map, eastern hill) slowly and level to rearm and repair.`].map(x => `<li>${x}</li>`).join('');
-    $('helpTips').innerHTML = [`<b>Never hover in range.</b> Archers and ballistae punish a still target — keep moving and change height.`, `<b>Jink on the warning.</b> A ballista needs 1.5 s of steady aim: turn hard or drop flares when it calls.`, `<b>Watch the light.</b> The run ends at sundown — ten minutes.`].map(x => `<li>${x}</li>`).join('');
+    const mode = settings.mode, li = a => a.map(x => `<li>${x}</li>`).join('');
+    $('helpMode').innerHTML = mode === 'assault' ? '<b>Assault handling</b> — the helicopter holds its altitude when you let go of the collective. It does not stop or level by itself.' : mode === 'stabilized' ? '<b>Stabilized handling</b> — let go of the mouse and it levels and brakes to a hover.' : '<b>Punishing handling</b> — nothing is held for you: no altitude hold, no levelling, and torque swings the nose when you change power.';
+    // page 1 — the four controls (swatch colours match the arrows in the illustration)
+    const ax = (col, name, keys, txt) => `<i class="sw" style="background:${col}"></i><span class="k">${keys}</span><span><b>${name}</b> — ${txt}</span>`;
+    const mx = '<kbd>Mouse ↔</kbd>';
+    $('helpAxes').innerHTML = ax('#e8962c', 'Pitch', '<kbd>Mouse ↕</kbd>', 'tip the nose down to speed up, up to slow down.')
+      + ax('#5d86b8', 'Roll', my ? kb('rollL', 'rollR') : `${mx} ${kb('rollL', 'rollR')}`, 'bank left / right. Banking is how you turn at speed.')
+      + ax('#6f9a4a', 'Yaw', my ? `${mx} ${kb('yawL', 'yawR')}` : kb('yawL', 'yawR'), 'swing the nose left / right on the spot.')
+      + ax('#c0483a', 'Collective', kb('collUp', 'collDown'), 'climb / descend. It does <i>not</i> move you forward.');
+    $('helpSteps').innerHTML = li([`<b>Go forward:</b> push the mouse forward to tip the nose down about 15°. You keep accelerating while the nose is down.`, `<b>Hold speed:</b> ease the nose back toward level.`, `<b>Stop:</b> pull the nose up (flare) until the speed bleeds off, then level out.`, `<b>Turn:</b> ${my ? 'move the mouse sideways to yaw, and bank with ' + kb('rollL', 'rollR') : 'bank with the mouse and add ' + kb('yawL', 'yawR') + ' to bring the nose round'}. At speed, bank and pull back slightly.`, `<b>Height:</b> ${kb('collUp')} to climb over walls and arrows, ${kb('collDown')} to sink — then use the nose to move.`]);
+    // page 2 — weapons
+    const card = (img, alt, cap, title, keys, how, pts) => `<div class="gcard"><figure class="plate"><img src="assets/ui/howto/${img}.jpg" alt="${alt}"><figcaption>${cap}</figcaption></figure><h3>${title}<small>${keys}</small></h3>${how ? `<div class="how">${how}</div>` : ''}<ul>${li(pts)}</ul></div>`;
+    $('helpWeapons').innerHTML = card('p2_cannon', 'The helicopter strafing a formation with its chin cannon', 'Hold the sight on the banner', `${kb('wpn1')} CANNON`, '30 MM · 600', `Hold ${kb('gunner')} for the gunner sight, ${kb('fire')} to fire.`,
+      [`<b>The mouse aims the turret</b> while the helicopter flies on — keep moving as you shoot.`, `<b>Kill the knights around a banner</b> and the whole block breaks and runs.`, `<b>Short bursts.</b> About 4 s of fire overheats the gun.`])
+      + card('p2_rockets', 'The helicopter diving at a siege tower and firing rockets', 'Rockets fly where the nose points', `${kb('wpn2')} ROCKETS`, '38', `Point the nose, ${kb('fire')} to ripple.`,
+      [`<b>Dive at the target</b> and put the impact circle on it — no circle, no hit.`, `<b>Splash damage:</b> for packed formations, siege engines and walls.`, `<b>Pull out early.</b> A dive that ends in the ground ends the run.`])
+      + card('p2_missiles', 'A lock box on a gate tower and a missile launching toward it', 'Two steady seconds, then fire', `${kb('wpn3')} MISSILES`, '8', `Keep the box on the target, ${kb('fire')} on the tone.`,
+      [`<b>Lock takes 2 s</b> of steady aim on a tower, trebuchet or gate.`, `<b>One missile, one tower.</b> Save them for phase two.`, `<b>Fire unlocked</b> and it flies straight like a big rocket.`]);
+    $('helpKeys').innerHTML = [[kb('fire'), 'fire'], [kb('wpn1', 'wpn2', 'wpn3') + ' / wheel', 'select weapon'], [kb('flares'), 'flares'], [kb('view'), 'cockpit view'], [`hold ${kb('freelook')}`, 'look around'], ['<kbd>Esc</kbd>', 'pause'], [kb('restart'), 'restart run']].map(([a, b]) => `<span>${a} <b>${b}</b></span>`).join('');
+    // page 3 — the mission, staying alive, the pad
+    $('helpMission').innerHTML = `<div class="gcard"><figure class="plate"><img src="assets/ui/howto/p3_map.jpg" alt="Hand-drawn map of the valley: castle, army, village, river and the rearm pad"><figcaption>The valley, the castle, the pad</figcaption></figure><h3>THE MISSION<small>3 PHASES · 10 MIN</small></h3><ol>${li([`<b>Break the field army.</b> Rout four of the six formations.`, `<b>Silence the walls.</b> Destroy the four gate towers and their ballistae.`, `<b>Kill the warlord</b> in the courtyard — walls on every side.`, `<b>Sundown ends the run</b> at ten minutes. Watch LIGHT, top left.`])}</ol></div>`
+      + card('p3_threats', 'The helicopter banking hard and dropping flares as a ballista bolt misses', 'Jink on the warning', 'STAY ALIVE', `FLARES ${kb('flares')} · 6`, '',
+        [`<b>Never hover in range.</b> Archers and ballistae punish a still target — keep moving and change height.`, `<b>Ballista tone = 1.5 s.</b> Turn hard or drop flares before it fires.`, `<b>Watch the boulder arcs</b> and move off the impact marker.`, `<b>Hits break systems</b> — tail rotor, hydraulics, engine. Check the panel bottom right.`])
+      + card('p3_pad', 'The helicopter landing gently on the rearm pad on a hill', 'Slow and level onto the H', 'REARM &amp; REPAIR', 'PAD · EAST HILL', '',
+        [`<b>The pad is the H</b> on the map, on the eastern hill. The HUD shows its distance.`, `<b>Touch down slow and level, then stop</b> — a hard landing is a crash.`, `<b>Sit tight:</b> ammo, flares and damaged systems come back while you stay on it.`, `<b>Out of ammo or limping?</b> The flight back is cheaper than losing the helicopter.`]);
     $('btnHelpGo').style.display = from === 'start' ? '' : 'none'; $('btnHelpBack').textContent = from === 'start' ? 'Back' : from === 'pause' ? 'Back to pause menu' : 'Back'; $('helpSkipL').style.display = from === 'pause' ? 'none' : '';
+    this.helpPage(0);
     this.show('help');
   },
   clearSubs() { for (const id of ['subMain', 'subEnemy']) $(id).classList.remove('on'); },

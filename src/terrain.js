@@ -1,6 +1,7 @@
 // Siege Wing — valley terrain: height function, heightmap, mesh, material, scorch map, far sun shadows
 import * as THREE from 'three';
 import { G, fbm, ridged, vnoise, smooth, lerp, clamp, wrapPi, patchMaterial, makeNoiseTexture } from './core.js';
+import { assets } from './assets.js';
 
 // ---------- world layout (x = east, z = south, y = up) ----------
 export const L = {
@@ -108,13 +109,23 @@ export const terrain = {
       const x = (i + 0.5) / S * 4096 - 2048, z = (j + 0.5) / S * 4096 - 2048; const k = (j * S + i) * 4;
       const fe = Math.hypot((x - L.FIELD.x) / L.FIELD.rx, (z - L.FIELD.z) / L.FIELD.rz);
       const n = fbm(x * 0.01, z * 0.01, 3) * 0.5 + 0.5;
-      let mud = smooth(0.95, 0.35, fe) * (0.45 + 0.55 * n);
+      let mud = smooth(0.95, 0.35, fe) * (0.16 + 0.5 * smooth(0.42, 0.75, n));
+      // ground churned where the army stands, drills and camps
+      for (const [bx, bz, br] of TRAMPLE) { const d = Math.hypot(x - bx, z - bz); if (d < br * 1.6) mud = Math.max(mud, smooth(br * 1.5, br * 0.55, d + (n - 0.5) * 22) * 0.95); }
       const dcs = Math.hypot(x - C.x, z - C.z); mud = Math.max(mud, smooth(170, 100, dcs) * 0.8);
       const dv = Math.hypot(x - V.x, z - V.z); mud = Math.max(mud, smooth(170, 60, dv) * 0.6 * n);
       const dp = Math.hypot(x - L.PAD.x, z - L.PAD.z); mud = Math.max(mud, smooth(60, 30, dp) * 0.7);
       const rd = this.roadDist(x, z);
       const road = smooth(5.5, 2.5, rd + (n - 0.5) * 2.5);
-      data[k] = mud * 255; data[k + 1] = road * 255; data[k + 2] = forestDensity(x, z) * 255; data[k + 3] = 255;
+      const fd = forestDensity(x, z);
+      // farmland mask: gentle open ground away from the battlefield, the castle crag and the river bed
+      let farm = 0;
+      if (fd < 0.3 && Math.abs(x) < 1950 && Math.abs(z) < 1950) {
+        const e = 6, sl = Math.hypot(this.height(x + e, z) - this.height(x - e, z), this.height(x, z + e) - this.height(x, z - e)) / (2 * e);
+        const big = fbm(x * 0.0016 + 9, z * 0.0016 - 4, 3) * 0.5 + 0.5;
+        farm = smooth(0.2, 0.09, sl) * smooth(1.12, 1.3, fe) * smooth(0.3, 0.05, fd) * smooth(250, 330, dcs) * smooth(70, 110, dp) * smooth(34, 60, Math.abs(x - riverX(z))) * smooth(1900, 1500, Math.hypot(x, z)) * smooth(0.28, 0.4, big) * smooth(16.5, 19, this.height(x, z));
+      }
+      data[k] = mud * 255; data[k + 1] = road * 255; data[k + 2] = fd * 255; data[k + 3] = farm * 255;
     }
     const t = this.ctlTex = new THREE.DataTexture(data, S, S, THREE.RGBAFormat);
     t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true;
@@ -122,70 +133,126 @@ export const terrain = {
 
   _buildMaterial() {
     const mat = this.material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
+    const gr = assets.ground;
     patchMaterial(mat, 'terrain', sh => {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; varying vec3 vWn;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n vWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vWn = normalize(mat3(modelMatrix) * normal);');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', /* glsl */`#include <common>
         varying vec3 vWp; varying vec3 vWn;
         uniform sampler2D uNoise; uniform sampler2D uCtl; uniform sampler2D uScorch; uniform vec4 uScorchP; uniform float uNight;
-        float swRough; vec3 swEmis; vec3 swNrmP;`)
+        uniform sampler2DArray uGA; uniform sampler2DArray uGB; uniform vec3 uGMean[${gr.n}];
+        float swRough; vec3 swEmis; vec3 swNrmP;
+        // photoscanned ground layers: A = albedo + height, B = normal.xy + roughness + AO
+        struct SwS { vec3 c; vec3 n; float r; float h; };
+        vec2 swP, swDx, swDy; vec3 swD3x, swD3y; float swFar;
+        SwS swPack(vec4 a, vec4 b, vec3 nw, int L, vec3 tgt, float tk) {
+          SwS o; o.c = mix(a.rgb, a.rgb / uGMean[L] * tgt, tk) * mix(1.0, b.a, 0.65); o.n = nw; o.r = b.b; o.h = a.a; return o; }
+        // planar (xz) sample at two tile scales, cross-faded by distance to hide repetition
+        SwS swSamp(int L, float s1, float s2, vec3 tgt, float tk) {
+          vec4 a = vec4(0.0), b = vec4(0.0); float fl = float(L);
+          if (swFar < 0.995) { vec2 u = swP * s1; a = textureGrad(uGA, vec3(u, fl), swDx * s1, swDy * s1); b = textureGrad(uGB, vec3(u, fl), swDx * s1, swDy * s1); }
+          if (swFar > 0.005) { vec2 u = swP * s2 + 0.31; vec4 a2 = textureGrad(uGA, vec3(u, fl), swDx * s2, swDy * s2), b2 = textureGrad(uGB, vec3(u, fl), swDx * s2, swDy * s2);
+            if (swFar < 0.995) { a = mix(a, a2, swFar); b = mix(b, b2, swFar); } else { a = a2; b = b2; } }
+          vec2 n = b.rg * 2.0 - 1.0; return swPack(a, b, vec3(n.x, 0.0, -n.y), L, tgt, tk); }
+        // triplanar sample (cliffs)
+        SwS swTri(int L, vec3 wp, vec3 wn, float s, vec3 tgt, float tk) {
+          vec3 w = abs(wn); w = w * w; w = w * w; w /= (w.x + w.y + w.z); float fl = float(L);
+          vec4 a = vec4(0.0), b = vec4(0.0); vec3 nn = vec3(0.0); float ws = 0.0;
+          if (w.y > 0.03) { vec4 A = textureGrad(uGA, vec3(wp.xz * s, fl), swD3x.xz * s, swD3y.xz * s), B = textureGrad(uGB, vec3(wp.xz * s, fl), swD3x.xz * s, swD3y.xz * s);
+            a += A * w.y; b += B * w.y; ws += w.y; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(n.x, 0.0, -n.y) * w.y; }
+          if (w.x > 0.03) { vec2 u = vec2(wp.z, -wp.y) * s; vec4 A = textureGrad(uGA, vec3(u, fl), vec2(swD3x.z, -swD3x.y) * s, vec2(swD3y.z, -swD3y.y) * s), B = textureGrad(uGB, vec3(u, fl), vec2(swD3x.z, -swD3x.y) * s, vec2(swD3y.z, -swD3y.y) * s);
+            a += A * w.x; b += B * w.x; ws += w.x; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(0.0, n.y, n.x) * w.x; }
+          if (w.z > 0.03) { vec2 u = vec2(wp.x, -wp.y) * s; vec4 A = textureGrad(uGA, vec3(u, fl), vec2(swD3x.x, -swD3x.y) * s, vec2(swD3y.x, -swD3y.y) * s), B = textureGrad(uGB, vec3(u, fl), vec2(swD3x.x, -swD3x.y) * s, vec2(swD3y.x, -swD3y.y) * s);
+            a += A * w.z; b += B * w.z; ws += w.z; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(n.x, n.y, 0.0) * w.z; }
+          ws = 1.0 / max(ws, 1e-3); return swPack(a * ws, b * ws, nn * ws, L, tgt, tk); }
+        void swMix(inout SwS a, SwS b, float m) { a.c = mix(a.c, b.c, m); a.n = mix(a.n, b.n, m); a.r = mix(a.r, b.r, m); a.h = mix(a.h, b.h, m); }
+        // height-aware mask: the taller material wins inside the transition band
+        float swHB(float m, float dh) { return smoothstep(0.3, 0.7, m + dh * 1.1 * (1.0 - abs(2.0 * m - 1.0))); }`)
         .replace('#include <map_fragment>', /* glsl */`
         {
           vec3 wp = vWp; vec3 wn = normalize(vWn);
           float camD = length(wp - cameraPosition);
+          swD3x = dFdx(wp); swD3y = dFdy(wp);
           float n1 = texture2D(uNoise, wp.xz * 0.0019).r;
           float n2 = texture2D(uNoise, wp.xz * 0.013 + n1 * 0.3).g;
           float n3 = texture2D(uNoise, wp.xz * 0.11).b;
           float n4 = texture2D(uNoise, wp.xz * 0.71).a;
-          float n3x = texture2D(uNoise, wp.xz * 0.11 + vec2(0.012, 0.0)).b, n3z = texture2D(uNoise, wp.xz * 0.11 + vec2(0.0, 0.012)).b;
-          float n4x = texture2D(uNoise, wp.xz * 0.71 + vec2(0.012, 0.0)).a, n4z = texture2D(uNoise, wp.xz * 0.71 + vec2(0.0, 0.012)).a;
-          float detF = smoothstep(260.0, 30.0, camD);
+          vec2 warp = (vec2(texture2D(uNoise, wp.xz * 0.0017).r, texture2D(uNoise, wp.zx * 0.0017 + 0.37).r) - 0.5) * 9.0; // slow domain warp breaks the tile grid
+          swP = wp.xz + warp; swDx = swD3x.xz; swDy = swD3y.xz; swFar = smoothstep(30.0, 190.0, camD);
+          float macro = smoothstep(140.0, 620.0, camD);
           vec4 ctl = texture2D(uCtl, wp.xz / 4096.0 + 0.5);
-          if (abs(wp.x) > 2040.0 || abs(wp.z) > 2040.0) ctl = vec4(0.0, 0.0, 0.25, 1.0);
+          if (abs(wp.x) > 2040.0 || abs(wp.z) > 2040.0) ctl = vec4(0.0, 0.0, 0.25, 0.0);
           float slope = 1.0 - wn.y;
-          // grass
           vec3 gLush = vec3(0.115, 0.17, 0.035), gDry = vec3(0.34, 0.27, 0.085), gDark = vec3(0.05, 0.085, 0.022);
-          float dry = smoothstep(0.38, 0.68, n1 * 0.55 + n2 * 0.45);
-          vec3 grass = mix(gLush, gDry, dry);
-          grass = mix(grass, gDark, smoothstep(0.52, 0.78, n2) * 0.55 * (1.0 - dry));
-          grass *= 0.7 + 0.6 * mix(0.5, n3, 0.7) + (n4 - 0.5) * 0.35 * detF;
-          // rock
-          vec3 rock = mix(vec3(0.21, 0.19, 0.17), vec3(0.40, 0.36, 0.31), n2);
-          rock *= 0.55 + 0.9 * n3 * mix(1.0, n4 + 0.5, detF);
-          float strata = texture2D(uNoise, vec2(wp.y * 0.035 + n2 * 0.4, n1)).g; rock *= 0.8 + 0.4 * strata;
-          float rockM = smoothstep(0.20, 0.40, slope + (n3 - 0.5) * 0.18 + smoothstep(260.0, 520.0, wp.y) * 0.2);
-          vec3 col = mix(grass, rock, rockM);
+          float dry = smoothstep(0.38, 0.68, n1 * 0.55 + n2 * 0.45) * (1.0 - 0.6 * smoothstep(120.0, 330.0, wp.y + n2 * 60.0)); // upland turf stays greener
+          float rockM = smoothstep(0.20, 0.40, slope + (n3 - 0.5) * 0.18 + smoothstep(230.0, 560.0, wp.y + n1 * 160.0) * 0.3);
+          // ---- grass: meadow, straw-dry and lush patches ----
+          SwS g = swSamp(1, 0.43, 0.061, mix(gLush, gDry, 0.3), 0.72);
+          if (dry > 0.004) { SwS d = swSamp(2, 0.37, 0.052, gDry, 0.72); swMix(g, d, swHB(dry, d.h - g.h)); }
+          float lushM = smoothstep(0.52, 0.78, n2) * 0.7 * (1.0 - dry);
+          if (lushM > 0.004) { SwS d = swSamp(0, 0.47, 0.067, gDark * 1.5, 0.72); swMix(g, d, swHB(lushM, d.h - g.h)); }
+          // aerial-scale variation (a 60 m scan) so the field never reads as one flat carpet
+          { vec2 u = swP / 61.0; vec3 ae = textureGrad(uGA, vec3(u, 7.0), swDx / 61.0, swDy / 61.0).rgb / uGMean[7];
+            ae = clamp(mix(vec3(dot(ae, vec3(0.3, 0.55, 0.15))), ae, 0.3), 0.5, 1.45);
+            g.c *= mix(vec3(1.0), ae, mix(0.5, 0.95, macro)) * (0.86 + 0.28 * n3 * (1.0 - macro)); }
+          // ---- rock: aerial crag scan for structure, close-up rock face for detail ----
+          if (rockM > 0.004) {
+            vec3 rt = mix(vec3(0.21, 0.19, 0.17), vec3(0.40, 0.36, 0.31), n2);
+            SwS r = swTri(8, wp, wn, 1.0 / 74.0, rt, 0.55);
+            if (camD < 520.0) { SwS d = swTri(4, wp, wn, 1.0 / 6.5, vec3(1.0), 1.0); float k = smoothstep(520.0, 260.0, camD); r.c *= mix(vec3(1.0), d.c, k); r.n += d.n * k; r.r = mix(r.r, d.r, k * 0.6); r.h = mix(r.h, d.h, k * 0.5); }
+            float strata = texture2D(uNoise, vec2(wp.y * 0.035 + n2 * 0.4, n1)).g; r.c *= 0.8 + 0.4 * strata; r.n *= 1.5;
+            swMix(g, r, swHB(rockM, r.h - g.h));
+          }
+          // ---- farmland: strip fields (stubble, plough, green crop) divided by grassy balks ----
+          float farm = ctl.a * (1.0 - rockM);
+          if (farm > 0.01) {
+            vec2 fp = vec2(wp.x * 0.94 + wp.z * 0.342, wp.z * 0.94 - wp.x * 0.342) + warp * 0.6;
+            vec2 fs = vec2(34.0, 126.0); vec2 cell = floor(fp / fs); vec2 fq = fp - cell * fs;
+            vec4 hh = textureLod(uNoise, (cell + 0.5) / 256.0, 0.0);
+            float fw = max(length(swD3x.xz), length(swD3y.xz));
+            float edge = min(min(fq.x, fs.x - fq.x), min(fq.y, fs.y - fq.y));
+            float inner = smoothstep(1.3 - fw, 2.4 + fw, edge + (n3 - 0.5) * 1.2) * smoothstep(0.25, 0.6, farm + (n2 - 0.5) * 0.3);
+            float kind = fract(hh.r * 7.31 + hh.g * 3.17);
+            // furrows run along the strip; fade out before they alias
+            float fur = sin(fq.x * 3.9 + n3 * 1.5) * smoothstep(0.55, 0.16, fw);
+            if (kind > 0.34 && inner > 0.004) {
+              if (kind < 0.58) { SwS d = swSamp(2, 0.41, 0.057, vec3(0.42, 0.33, 0.11) * (0.85 + 0.3 * hh.b), 0.8); d.c *= 1.0 + 0.10 * fur; swMix(g, d, inner * 0.92); }
+              else if (kind < 0.82) { SwS d = swSamp(3, 0.36, 0.055, vec3(0.20, 0.135, 0.085) * (0.8 + 0.4 * hh.b), 0.8); d.c *= 1.0 + 0.24 * fur; d.n.x += fur * 0.5 * 0.94; d.n.z += fur * 0.5 * 0.342; swMix(g, d, inner * 0.95); }
+              else { SwS d = swSamp(0, 0.45, 0.063, vec3(0.105, 0.19, 0.04) * (0.85 + 0.3 * hh.b), 0.8); d.c *= 1.0 + 0.16 * fur; swMix(g, d, inner * 0.9); }
+            }
+            g.c = mix(g.c, g.c * vec3(0.55, 0.7, 0.45), (1.0 - inner) * smoothstep(0.3, 0.6, farm) * 0.6); // balks / hedge banks
+          }
           // alpine tint
-          col = mix(col, vec3(0.30, 0.28, 0.24) * (0.6 + 0.8 * n3), smoothstep(330.0, 600.0, wp.y + n2 * 120.0) * 0.6);
-          // forest floor
-          col = mix(col, vec3(0.045, 0.055, 0.02) * (0.6 + 0.8 * n3), ctl.b * 0.85 * (1.0 - rockM));
-          // trampled mud
+          g.c = mix(g.c, vec3(0.30, 0.28, 0.24) * (0.6 + 0.8 * n3), smoothstep(330.0, 600.0, wp.y + n2 * 120.0) * 0.45);
+          // ---- forest floor (leaf litter) ----
+          float forM = ctl.b * 0.85 * (1.0 - rockM);
+          if (forM > 0.004) { SwS d = swSamp(5, 0.31, 0.047, vec3(0.05, 0.057, 0.026), 0.85); swMix(g, d, swHB(forM, d.h - g.h)); }
+          // ---- trampled mud ----
           float mudM = smoothstep(0.25, 0.6, ctl.r * 0.75 + (n3 - 0.5) * 0.5 + ctl.r * (n2 - 0.3) * 0.6) * (1.0 - rockM);
-          vec3 mud = mix(vec3(0.16, 0.115, 0.07), vec3(0.24, 0.185, 0.115), n3) * (0.75 + 0.5 * n4);
-          col = mix(col, mud, mudM * 0.92);
-          // road
-          vec3 road = mix(vec3(0.27, 0.215, 0.14), vec3(0.34, 0.28, 0.19), n4) * (0.8 + 0.4 * n3);
-          float ruts = smoothstep(0.35, 0.65, ctl.g) ;
-          col = mix(col, road, ruts);
-          // river banks
+          if (mudM > 0.004) { SwS d = swSamp(3, 0.39, 0.058, mix(vec3(0.16, 0.115, 0.07), vec3(0.24, 0.185, 0.115), n3), 0.7); swMix(g, d, swHB(mudM * 0.94, (d.h - g.h) * 0.8)); }
+          // ---- road (stony track) ----
+          float ruts = smoothstep(0.35, 0.65, ctl.g) * (1.0 - 0.55 * rockM);
+          if (ruts > 0.004) { SwS d = swSamp(6, 0.33, 0.071, mix(vec3(0.27, 0.215, 0.14), vec3(0.34, 0.28, 0.19), n3), 0.7); swMix(g, d, swHB(ruts, (d.h - g.h) * 0.6)); }
+          // ---- river banks: wet shingle ----
           float wet = smoothstep(${(L.WATER_Y + 1.6).toFixed(1)}, ${(L.WATER_Y + 0.15).toFixed(2)}, wp.y + (n3 - 0.5) * 0.8);
-          col = mix(col, vec3(0.25, 0.21, 0.15) * (0.6 + 0.7 * n4), wet);
+          if (wet > 0.004) { SwS d = swSamp(6, 0.27, 0.063, vec3(0.2, 0.17, 0.125), 0.7); swMix(g, d, wet); }
+          vec3 col = g.c;
           col *= mix(1.0, 0.35, smoothstep(${(L.WATER_Y).toFixed(1)}, ${(L.WATER_Y - 1.8).toFixed(1)}, wp.y));
-          swRough = mix(0.96, 0.82, rockM); swRough = mix(swRough, 0.9, mudM); swRough = mix(swRough, 0.35, wet);
+          swRough = 0.76 + 0.24 * g.r; swRough = mix(swRough, 0.32, wet * 0.9);
           // scorch + embers
           vec2 suv = (wp.xz - uScorchP.xy) * uScorchP.z + 0.5;
           vec4 sc = (suv.x > 0.0 && suv.x < 1.0 && suv.y > 0.0 && suv.y < 1.0) ? texture2D(uScorch, suv) : vec4(0.0);
           float burn = sc.r * (0.75 + 0.5 * n3);
-          col = mix(col, vec3(0.012, 0.010, 0.009), clamp(burn, 0.0, 0.94));
+          col = mix(col, vec3(0.012, 0.010, 0.009) * (0.5 + g.h), clamp(burn, 0.0, 0.94));
           col = mix(col, vec3(0.2, 0.19, 0.18) * n4, clamp(burn - 0.7, 0.0, 1.0) * 0.6 * n4); // ash flecks
           swEmis = vec3(1.0, 0.28, 0.04) * sc.g * sc.g * (0.4 + 2.2 * smoothstep(0.45, 0.8, n4 * 0.6 + n3 * 0.5)) * 5.0;
-          swNrmP = vec3(n3x - n3, 0.0, n3z - n3) * (0.7 + rockM * 3.5) + vec3(n4x - n4, 0.0, n4z - n4) * 2.2 * detF * (0.35 + rockM + mudM);
+          swNrmP = g.n * 1.15;
           diffuseColor.rgb = col;
         }`)
         .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = swRough;')
-        .replace('#include <normal_fragment_maps>', 'normal = normalize(normal - (viewMatrix * vec4(swNrmP, 0.0)).xyz);')
+        .replace('#include <normal_fragment_maps>', 'normal = normalize(normal + (viewMatrix * vec4(swNrmP, 0.0)).xyz);')
         .replace('#include <emissivemap_fragment>', 'totalEmissiveRadiance += swEmis;');
-    }, { uCtl: { value: this.ctlTex } });
+    }, { uCtl: { value: this.ctlTex }, uGA: { value: gr.A }, uGB: { value: gr.B }, uGMean: { value: gr.mean } });
   },
 
   _buildMeshes(scene) {
@@ -311,6 +378,9 @@ export const terrain = {
     r.setRenderTarget(old); r.autoClear = oldAuto;
   },
 };
+
+// trampled ground: [x, z, radius] — infantry blocks, archer lines, siege camp
+const TRAMPLE = [[112, -84, 34], [118, 0, 34], [112, 84, 34], [46, -84, 34], [52, 0, 34], [46, 84, 34], [82, -178, 26], [82, 178, 26], [300, -330, 26], [250, 70, 26], [205, 0, 20], [-40, 0, 60], [-120, -90, 45], [-120, 100, 45]];
 
 // ---------- forest density (0..1) — also used by scenery placement ----------
 export function forestDensity(x, z) {

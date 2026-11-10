@@ -89,7 +89,7 @@ export const crowd = {
         .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = vec3(normal); vec3 swP = vec3(position); swXform(swP, objectNormal); vSwT = iTint.rgb; vSwM = uv;')
         .replace('#include <begin_vertex>', 'vec3 transformed = swP;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSwT; varying vec2 vSwM;')
-        .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(vec3(0.75), vSwT * 1.5, 0.8), step(0.5, vSwM.x));')
+        .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * mix(vec3(0.75), vSwT * 1.5, 0.8), step(0.5, vSwM.x)); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * (0.4 + vSwT * 1.35), 0.5 * smoothstep(80.0, 210.0, length(vViewPosition))); // far blocks keep their heraldic colour')
         .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = step(0.5, vSwM.y) * 0.9;')
         .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(0.86, 0.38, step(0.5, vSwM.y));');
     }, u);

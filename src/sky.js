@@ -76,11 +76,14 @@ export const sky = {
     this.pmrem = new THREE.PMREMGenerator(G.renderer); this.envRT = null; this.envT = 1e9;
     // sun
     const sun = this.sun = new THREE.DirectionalLight(0xffffff, 1);
-    sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.35; sun.shadow.radius = 2.2;
+    sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.00016; sun.shadow.normalBias = 0.11; sun.shadow.radius = 2.2;
     scene.add(sun); scene.add(sun.target);
+    // second cascade: a zero-intensity light that only carries the wide shadow map (see swCSM in core.js)
+    const sun2 = this.sun2 = new THREE.DirectionalLight(0x000000, 0);
+    sun2.castShadow = true; sun2.shadow.mapSize.set(4096, 4096); sun2.shadow.bias = -0.0004; sun2.shadow.normalBias = 0.35;
+    scene.add(sun2); scene.add(sun2.target);
     this.fill = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.0); scene.add(this.fill);
     scene.fog = new THREE.FogExp2(0xffffff, 0.0001); // only enables USE_FOG; real fog is in core.js chunks
-    this.shadowSize = 260;
     this.setTime(0);
   },
   // tod 0..1 over the run
@@ -104,7 +107,7 @@ export const sky = {
     const inten = lerp(0.0, lerp(3.2, 8.5, day), smooth(-1.2, 2.5, e));
     this.sunVisible = smooth(-1.2, 2.5, e);
     this.sun.color.copy(sc); this.sun.intensity = inten;
-    this.sun.castShadow = inten > 0.05;
+    this.sun.castShadow = this.sun2.castShadow = inten > 0.05;
     U.uSunCol.value.copy(sc).multiplyScalar(inten);
     this.uniforms.uSkySun.value.copy(sc).multiplyScalar(lerp(0.0, lerp(3.2, 4.2, day), up));
     // sky colours
@@ -122,19 +125,12 @@ export const sky = {
     this.fill.color.setRGB(0.42, 0.52, 0.85); this.fill.groundColor.setRGB(0.10, 0.10, 0.14); this.fill.intensity = night * 0.75;
     this.exposure = lerp(1.18, 1.6, night);
   },
-  update(dt, focus, shadowSize) {
+  // focus = centre of the wide cascade (the helicopter); near = centre of the tight cascade (where the player is looking)
+  update(dt, focus, near) {
     const cam = G.camera;
     this.dome.position.copy(cam.position);
-    // shadow frustum follows the focus point, snapped to texels
-    const S = this.shadowSize = shadowSize || this.shadowSize; const sun = this.sun; const sc = sun.shadow.camera;
-    if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 10; sc.far = 2600; sc.updateProjectionMatrix(); }
-    const d = G.U.uSunDir.value;
-    // build light basis and snap
-    const texel = (2 * S) / sun.shadow.mapSize.x;
-    const right = _r.crossVectors(_up, d).normalize(), up2 = _u.crossVectors(d, right).normalize();
-    const fx = Math.round(focus.dot(right) / texel) * texel, fy = Math.round(focus.dot(up2) / texel) * texel, fz = focus.dot(d);
-    _f.set(0, 0, 0).addScaledVector(right, fx).addScaledVector(up2, fy).addScaledVector(d, fz);
-    sun.target.position.copy(_f); sun.position.copy(_f).addScaledVector(d, 1300); sun.target.updateMatrixWorld();
+    this._fit(this.sun, near || focus, 105);
+    this._fit(this.sun2, focus, 310);
     // refresh IBL periodically
     this.envT += dt;
     if (this.envT > (this.envRT && location.search.includes('noenv') ? 1e9 : 6)) {
@@ -143,6 +139,17 @@ export const sky = {
       this.scene.environment = this.envRT.texture; this.scene.environmentIntensity = 1.9;
       if (old) old.dispose();
     }
+  },
+  // fixed-size orthographic shadow frustum centred on p, snapped to whole texels so edges never crawl
+  _fit(sun, p, S) {
+    const sc = sun.shadow.camera;
+    if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 10; sc.far = 2600; sc.updateProjectionMatrix(); }
+    const d = G.U.uSunDir.value;
+    const texel = (2 * S) / sun.shadow.mapSize.x;
+    const right = _r.crossVectors(_up, d).normalize(), up2 = _u.crossVectors(d, right).normalize();
+    const fx = Math.round(p.dot(right) / texel) * texel, fy = Math.round(p.dot(up2) / texel) * texel, fz = p.dot(d);
+    _f.set(0, 0, 0).addScaledVector(right, fx).addScaledVector(up2, fy).addScaledVector(d, fz);
+    sun.target.position.copy(_f); sun.position.copy(_f).addScaledVector(d, 1300); sun.target.updateMatrixWorld();
   },
 };
 const _r = new V3(), _u = new V3(), _f = new V3(), _up = new V3(0, 1, 0);

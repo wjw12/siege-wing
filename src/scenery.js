@@ -269,7 +269,22 @@ export const scenery = {
       const crag = dc > 150 && dc < 260; if (slope < 0.1 && !(rng() < 0.03)) continue; if (dc < 150 || Math.hypot(x - L.PAD.x, z - L.PAD.z) < 40) continue;
       const k = crag && rng() < 0.4 ? 3 : (rng() * 3) | 0; lists[k].push({ x, y: y - 0.3 - (k === 3 ? 1.2 : 0), z, ry: rng() * TAU, s: (k === 3 ? 1.0 : 0.7) + rng() * 1.5, rx: (rng() - 0.5) * 0.5, rz: (rng() - 0.5) * 0.5 });
     }
-    const rm = this.mats.rock = this.mats.prop.clone(); patchMaterial(rm, 'prop', this.mats.prop.onBeforeCompile); rm.roughness = 0.95;
+    // boulders and crag pieces: the same photoscanned rock as the terrain cliffs, projected triplanar in world space
+    const rm = this.mats.rock = this.mats.prop.clone(); rm.roughness = 0.95; const basePatch = this.mats.prop.onBeforeCompile; const gr = assets.ground;
+    patchMaterial(rm, 'rock', sh => {
+      basePatch(sh); Object.assign(sh.uniforms, { uGA: { value: gr.A }, uGB: { value: gr.B }, uGMean: { value: gr.mean } });
+      sh.fragmentShader = sh.fragmentShader.replace('varying vec3 vPW; uniform sampler2D uNoise;', `varying vec3 vPW; uniform sampler2D uNoise;
+        uniform sampler2DArray uGA; uniform sampler2DArray uGB; uniform vec3 uGMean[${gr.n}]; vec3 swRkN; float swRkR;`)
+        .replace('#include <color_fragment>', /* glsl */`#include <color_fragment>
+        { vec3 dx = dFdx(vPW), dy = dFdy(vPW); vec3 w = abs(normalize(cross(dx, dy))); w = w * w; w = w * w; w /= (w.x + w.y + w.z);
+          vec3 c = vec3(0.0), c2 = vec3(0.0); vec4 b = vec4(0.0); vec3 nn = vec3(0.0); const float s = 1.0 / 3.4, s2 = 1.0 / 23.0;
+          if (w.y > 0.03) { c += textureGrad(uGA, vec3(vPW.xz * s, 4.0), dx.xz * s, dy.xz * s).rgb * w.y; c2 += textureGrad(uGA, vec3(vPW.xz * s2, 8.0), dx.xz * s2, dy.xz * s2).rgb * w.y; vec4 B = textureGrad(uGB, vec3(vPW.xz * s, 4.0), dx.xz * s, dy.xz * s); b += B * w.y; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(n.x, 0.0, -n.y) * w.y; }
+          if (w.x > 0.03) { vec2 u = vec2(vPW.z, -vPW.y), ux = vec2(dx.z, -dx.y), uy = vec2(dy.z, -dy.y); c += textureGrad(uGA, vec3(u * s, 4.0), ux * s, uy * s).rgb * w.x; c2 += textureGrad(uGA, vec3(u * s2, 8.0), ux * s2, uy * s2).rgb * w.x; vec4 B = textureGrad(uGB, vec3(u * s, 4.0), ux * s, uy * s); b += B * w.x; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(0.0, n.y, n.x) * w.x; }
+          if (w.z > 0.03) { vec2 u = vec2(vPW.x, -vPW.y), ux = vec2(dx.x, -dx.y), uy = vec2(dy.x, -dy.y); c += textureGrad(uGA, vec3(u * s, 4.0), ux * s, uy * s).rgb * w.z; c2 += textureGrad(uGA, vec3(u * s2, 8.0), ux * s2, uy * s2).rgb * w.z; vec4 B = textureGrad(uGB, vec3(u * s, 4.0), ux * s, uy * s); b += B * w.z; vec2 n = B.rg * 2.0 - 1.0; nn += vec3(n.x, n.y, 0.0) * w.z; }
+          diffuseColor.rgb *= (c / uGMean[4]) * mix(vec3(1.0), c2 / uGMean[8], 0.6) * mix(1.0, b.a, 0.7) * 1.1; swRkN = nn * 1.4; swRkR = b.b; }`)
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = 0.78 + 0.22 * swRkR;')
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = normalize(normal + (viewMatrix * vec4(swRkN, 0.0)).xyz);');
+    });
     ['Rock_A', 'Rock_B', 'Rock_C', 'Cliff_A'].forEach((n, i) => instanced(scene, mergedGeo(V, n), rm, lists[i], i >= 2));
   },
 
@@ -316,9 +331,9 @@ export const scenery = {
     const hmTex = new THREE.DataTexture(terrain.hm, N, N, THREE.RedFormat, THREE.FloatType); hmTex.minFilter = hmTex.magFilter = THREE.LinearFilter; hmTex.needsUpdate = true;
     const g = new THREE.InstancedBufferGeometry();
     // blade: 5 verts, slightly bent
-    g.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, -0.32, 0.5, 0, 0.32, 0.5, 0, 0, 1, 0], 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
-    g.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4]);
+    g.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, -0.4, 0.38, 0, 0.4, 0.38, 0, -0.24, 0.72, 0, 0.24, 0.72, 0, 0, 1, 0], 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+    g.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4, 3, 5, 4, 4, 5, 6]);
     const off = new Float32Array(COUNT * 4); for (let i = 0; i < COUNT; i++) { off[i * 4] = rng() * S; off[i * 4 + 1] = rng() * S; off[i * 4 + 2] = rng() * TAU; off[i * 4 + 3] = rng(); }
     g.setAttribute('iOff', new THREE.InstancedBufferAttribute(off, 4)); g.instanceCount = COUNT;
     const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
@@ -337,7 +352,7 @@ export const scenery = {
         float n1 = texture2D(uNoise, base * 0.0019).r; float n2 = texture2D(uNoise, base * 0.013 + n1 * 0.3).g; float n3 = texture2D(uNoise, base * 0.11).b;
         vec2 suv = (base - uScorchP.xy) * uScorchP.z + 0.5; float burn = texture2D(uScorch, suv).r;
         float keep = smoothstep(${(S * 0.5).toFixed(1)}, ${(S * 0.3).toFixed(1)}, dist) * smoothstep(0.34, 0.2, slope) * smoothstep(0.22, 0.04, ctl.r * 0.75 + (n3 - 0.5) * 0.2) * smoothstep(0.5, 0.2, ctl.g) * smoothstep(${(L.WATER_Y + 0.5).toFixed(1)}, ${(L.WATER_Y + 1.8).toFixed(1)}, gh) * smoothstep(0.5, 0.15, burn) * (1.0 - ctl.b * 0.7);
-        float hgt = (0.35 + 0.5 * iOff.w + 0.35 * n2) * keep; float wdt = 0.10 + 0.08 * iOff.w;
+        float hgt = (0.35 + 0.5 * iOff.w + 0.35 * n2) * keep; float wdt = 0.055 + 0.05 * iOff.w;
         float ca = cos(iOff.z), sa = sin(iOff.z);
         float t = position.y;
         // wind + rotor wash bend
@@ -352,10 +367,12 @@ export const scenery = {
         vec3 gLush = vec3(0.115, 0.17, 0.035), gDry = vec3(0.34, 0.27, 0.085), gDark = vec3(0.05, 0.085, 0.022);
         float dry = smoothstep(0.38, 0.68, n1 * 0.55 + n2 * 0.45);
         vec3 gc = mix(gLush, gDry, dry); gc = mix(gc, gDark, smoothstep(0.52, 0.78, n2) * 0.55 * (1.0 - dry));
-        vGCol = gc * (0.7 + 0.6 * mix(0.5, n3, 0.7)) * (0.85 + 0.3 * iOff.w); vGH = t;
+        float bh = fract(iOff.w * 37.31 + iOff.z * 5.7); // per-blade variety: greener shoots, bleached straw, a few seed-brown stems
+        gc = mix(gc, gc * vec3(0.62, 1.12, 0.55), smoothstep(0.55, 0.9, bh) * 0.8); gc = mix(gc, vec3(0.46, 0.38, 0.2), smoothstep(0.0, 0.18, 0.18 - bh) * 0.7);
+        vGCol = gc * (0.7 + 0.6 * mix(0.5, n3, 0.7)) * (0.8 + 0.4 * iOff.w); vGH = t;
         `);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGCol; varying float vGH;')
-        .replace('#include <color_fragment>', 'diffuseColor.rgb = vGCol * mix(1.25, 2.0, vGH);')
+        .replace('#include <color_fragment>', 'diffuseColor.rgb = vGCol * mix(0.45, 1.5, sqrt(clamp(vGH, 0.0, 1.0))) * (gl_FrontFacing ? 1.0 : 0.82);')
         .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n normal = normalize(mix(normalize(vNormal), (viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz, 0.8));');
     }, this.grassU = { uHM: { value: hmTex }, uCtl: { value: terrain.ctlTex }, uCamG: { value: new V3() } });
     this.grassMat = mat;

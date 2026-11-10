@@ -6,6 +6,7 @@ import { world } from './world.js';
 import { input, settings } from './input.js';
 import { fx } from './fx.js';
 import { audio } from './audio.js';
+import { damage } from './damage.js';
 
 const GRAV = 9.81;
 const _v = new V3(), _v2 = new V3(), _v3 = new V3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _m = new THREE.Matrix4();
@@ -36,7 +37,7 @@ export const heli = {
     this.yaw = yaw; this.pitch = 0; this.roll = 0; this.cam.inited = false; this.gunner = false; this.partsLost = 0;
     for (const p of this.parts) p.visible = true;
     if (this.model) { this.model.visible = true; this._char(false); }
-    if (this.crackCtx) { this.crackCtx.clearRect(0, 0, 1024, 512); this.crackTex.needsUpdate = true; this.crackN = 0; }
+    damage.reset();
     this._derive();
   },
   _derive() {
@@ -59,8 +60,10 @@ export const heli = {
     if (s && o.subDmg) {
       const before = this.sub[s]; this.sub[s] = Math.max(0, before - o.subDmg);
       if (before >= 50 && this.sub[s] < 50) G.events.dispatchEvent(new CustomEvent('subDegraded', { detail: s }));
-      if (s === 'canopy') this._crack(o.subDmg);
+      if (s === 'canopy') { damage.crack(o.subDmg); audio.play('glassCrack'); }
+      if (s === 'hyd' && before >= 50 && this.sub[s] < 50) damage.oil();
     }
+    if (o.kind === 'arrows') damage.arrowHit();
     this.lastHitT = G.time; this.lastHitKind = o.kind || ''; this.hitFlash = Math.min(1, this.hitFlash + (o.hull || 1) * 0.06 + 0.15);
     this.shake = Math.min(1.6, this.shake + (o.hull || 1) * 0.07 + 0.08);
     // knock the airframe
@@ -92,18 +95,7 @@ export const heli = {
       if (on) { if (!m.userData.c0) { m.userData.c0 = m.color.clone(); m.userData.e0 = m.emissiveIntensity; } m.color.copy(m.userData.c0).multiplyScalar(0.09); if (m.emissiveIntensity !== undefined) m.emissiveIntensity = 0; }
       else if (m.userData.c0) { m.color.copy(m.userData.c0); if (m.userData.e0 !== undefined) m.emissiveIntensity = m.userData.e0; } } });
   },
-  _crack(amount) {
-    if (!this.crackCtx) return; const c = this.crackCtx; const n = Math.max(1, Math.round(amount / 6));
-    for (let k = 0; k < n; k++) {
-      const x = rnd(60, 964), y = rnd(40, 472); c.strokeStyle = 'rgba(235,245,255,0.85)'; c.fillStyle = 'rgba(220,235,255,0.25)';
-      c.beginPath(); c.arc(x, y, rnd(3, 7), 0, TAU); c.fill();
-      const rays = 5 + (Math.random() * 6 | 0);
-      for (let i = 0; i < rays; i++) { let a = rnd(TAU), px = x, py = y; c.lineWidth = rnd(0.6, 1.8); c.beginPath(); c.moveTo(px, py); const segs = 3 + (Math.random() * 5 | 0); for (let s = 0; s < segs; s++) { a += rndS(0.5); const l = rnd(8, 46); px += Math.cos(a) * l; py += Math.sin(a) * l; c.lineTo(px, py); } c.stroke(); }
-      c.lineWidth = 0.7; for (let r = 1; r < 3; r++) { c.beginPath(); for (let i = 0; i <= 10; i++) { const a = i / 10 * TAU, rr = r * rnd(12, 20); const X = x + Math.cos(a) * rr, Y = y + Math.sin(a) * rr; i ? c.lineTo(X, Y) : c.moveTo(X, Y); } c.stroke(); }
-    }
-    this.crackTex.needsUpdate = true; audio.play('glassCrack');
-  },
-  repair(s) { this.sub[s] = 100; if (s === 'canopy' && this.crackCtx) { this.crackCtx.clearRect(0, 0, 1024, 512); this.crackTex.needsUpdate = true; } },
+  repair(s) { this.sub[s] = 100; damage.repair(s); },
 
   // ----- simulation -----
   update(dt) {
@@ -123,6 +115,7 @@ export const heli = {
     } else if (this.freelook) {
       this.cam.flYaw = clamp(this.cam.flYaw - mx * sens, -2.8, 2.8); this.cam.flPitch = clamp(this.cam.flPitch - my * sens, -1.2, 1.2); mx = 0; my = 0;
     }
+    if (this.devLook) { this.cam.flYaw = this.devLook[0] * DEG; this.cam.flPitch = this.devLook[1] * DEG; } else
     if (!this.freelook) { const k = Math.exp(-dt / 0.13); this.cam.flYaw *= k; this.cam.flPitch *= k; }
     if (this.state === 'fly') {
       // accumulate mouse into command buffers
@@ -363,11 +356,10 @@ export const heli = {
     if (n.MainRotor) { this.rotorY = n.MainRotor.position.y; }
     root.updateWorldMatrix(true, true); if (n.PilotEye) this.eye.copy(n.PilotEye.getWorldPosition(new V3()));
     this._buildRotorBlur();
-    this._buildCrackOverlay();
     // glass
     root.traverse(o => { if (o.isMesh && o.material && /glass/i.test(o.material.name)) { const m = o.material = new THREE.MeshPhysicalMaterial({ color: 0x1a2a2a, roughness: 0.06, metalness: 0.0, transparent: true, opacity: 0.38, envMapIntensity: 1.6, side: THREE.DoubleSide, depthWrite: false }); m.name = 'Glass'; o.renderOrder = 5; o.castShadow = false; this.glass = o; } });
     { const hg = root.getObjectByName('HUDGlass'); if (hg) hg.traverse(o => { if (o.isMesh) o.material = new THREE.MeshPhysicalMaterial({ color: 0xa8d8b8, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.06, envMapIntensity: 0.5, depthWrite: false, side: THREE.DoubleSide }); }); }
-    { const cn = root.getObjectByName('Canopy'); if (cn) cn.traverse(o => { if (o.isMesh && o.material && o.material.name === 'Glass') this.glass = o; }); }
+    damage.init(this);   // canopy glass gets its own material carrying wear, cracks and oil
   },
   _buildRotorBlur() {
     const n = this.nodes; if (!n.MainRotor) return;
@@ -386,12 +378,6 @@ export const heli = {
     const d = this.rotorDisc = mkDisc(this.rotorR, 4, 0.5); d.rotation.x = -Math.PI / 2; d.renderOrder = 6; d.frustumCulled = false;
     n.MainRotor.parent.add(d); d.position.copy(n.MainRotor.position); d.position.y += 0.12;
     if (n.TailRotor) { const t = this.tailDisc = mkDisc(1.45, 4, 0.15); t.rotation.y = Math.PI / 2; t.renderOrder = 6; n.TailRotor.parent.add(t); t.position.copy(n.TailRotor.position); }
-  },
-  _buildCrackOverlay() {
-    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512; this.crackCtx = cv.getContext('2d'); this.crackN = 0;
-    this.crackTex = new THREE.CanvasTexture(cv); this.crackTex.colorSpace = THREE.SRGBColorSpace;
-    const m = this.crackMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), new THREE.MeshBasicMaterial({ map: this.crackTex, transparent: true, depthWrite: false, depthTest: false, fog: false, toneMapped: false, opacity: 0.9 }));
-    m.renderOrder = 50; m.frustumCulled = false; m.visible = false; G.scene.add(m);
   },
 
   _visuals(dt) {
@@ -449,6 +435,7 @@ export const heli = {
     const blink = (G.time * 3 % 1) < 0.55; const lamp = (name, on) => { const o = n[name]; if (o && o.material) { if (!o.userData.lampInit) { o.material = o.material.clone(); o.userData.lampInit = true; o.userData.col = o.material.emissive.getHex() || o.material.color.getHex(); } o.material.emissive.setHex(on ? (o.userData.col || 0xff2200) : 0x000000); o.material.emissiveIntensity = on ? 4 : 0; } };
     lamp('Warn_Master', (this.hull < 40 || SUBS.some(s => this.degraded(s))) && blink);
     lamp('Warn_Engine', this.degraded('engine')); lamp('Warn_Tail', this.degraded('tail')); lamp('Warn_Hyd', this.degraded('hyd')); lamp('Warn_Rotor', this.degraded('rotor') || this.vrs > 0.3);
+    lamp('Warn_Fire', (this.hull < 25 || this.state === 'crashing') && blink); lamp('Warn_Weapons', this.degraded('weapons')); lamp('Warn_Canopy', this.degraded('canopy'));
   },
 
   // ----- cameras -----
@@ -471,11 +458,9 @@ export const heli = {
       _q2.setFromEuler(_e.set(c.flPitch, c.flYaw, 0)); _q.multiply(_q2);
       camera.quaternion.copy(_q);
       camera.rotateX(sy * 0.006); camera.rotateY(sx * 0.006); camera.rotateZ(sr * 0.006);
-      targetFov = lerp(68, 30, c.aimBlend);
+      targetFov = lerp(76, 30, c.aimBlend);
       camera.near = 0.08; c.inited = false;
-      if (this.crackMesh) { this.crackMesh.visible = this.sub.canopy < 99 && c.aimBlend < 0.4; this.crackMesh.position.copy(_v).addScaledVector(this.fwd, 0.62).addScaledVector(this.up, 0.02); this.crackMesh.quaternion.copy(this.q); }
     } else {
-      if (this.crackMesh) this.crackMesh.visible = false;
       camera.near = 0.6;
       const hs = this.hspeed;
       // heading the camera sits behind: nose, swinging toward the velocity at speed

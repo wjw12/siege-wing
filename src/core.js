@@ -129,6 +129,31 @@ export function installShaderPatches() {
   C.lights_fragment_begin = C.lights_fragment_begin
     .replace('IncidentLight directLight;', 'IncidentLight directLight;\n float swFS = swFarShadow(cameraPosition + (vec4(geometryPosition, 0.0) * viewMatrix).xyz);')
     .replace('getDirectionalLightInfo( directionalLight, directLight );', 'getDirectionalLightInfo( directionalLight, directLight ); directLight.color *= swFS;');
+  // two-cascade sun shadows: light 0 = tight high-resolution map around the aim point, light 1 (zero intensity) = wide map
+  C.shadowmap_pars_fragment += `
+#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+float swCSM() {
+  vec4 c0 = vDirectionalShadowCoord[ 0 ]; vec3 p0 = c0.xyz / c0.w;
+  vec2 e = abs( p0.xy - 0.5 ) * 2.0; float k = smoothstep( 0.84, 0.98, max( e.x, e.y ) );
+  if ( p0.z > 1.0 || p0.z < 0.0 ) k = 1.0;
+  float s = 1.0;
+  if ( k < 1.0 ) s = getShadow( directionalShadowMap[ 0 ], directionalLightShadows[ 0 ].shadowMapSize, directionalLightShadows[ 0 ].shadowIntensity, directionalLightShadows[ 0 ].shadowBias, directionalLightShadows[ 0 ].shadowRadius, c0 );
+  if ( k > 0.0 ) s = mix( s, getShadow( directionalShadowMap[ 1 ], directionalLightShadows[ 1 ].shadowMapSize, directionalLightShadows[ 1 ].shadowIntensity, directionalLightShadows[ 1 ].shadowBias, directionalLightShadows[ 1 ].shadowRadius, vDirectionalShadowCoord[ 1 ] ), k );
+  return s;
+}
+#endif`;
+  {
+    const orig = 'directLight.color *= ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowIntensity, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;';
+    if (!C.lights_fragment_begin.includes(orig)) console.warn('shadow cascade patch: chunk text changed');
+    C.lights_fragment_begin = C.lights_fragment_begin.replace(orig, `
+		#if NUM_DIR_LIGHT_SHADOWS > 1
+			#if UNROLLED_LOOP_INDEX == 0
+			directLight.color *= ( directLight.visible && receiveShadow ) ? swCSM() : 1.0;
+			#endif
+		#else
+		${orig}
+		#endif`);
+  }
   // every material gets the shared uniforms
   THREE.Material.prototype.onBeforeCompile = function (shader) { Object.assign(shader.uniforms, G.U); };
 }

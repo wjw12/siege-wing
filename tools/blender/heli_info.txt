@@ -1,1 +1,1 @@
-tris 76709
+tris 143740 (exterior 96263)
