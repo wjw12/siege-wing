@@ -19,6 +19,15 @@ export const dev = {
     const nowP = performance.now(); const real = (nowP - (this.lastP || nowP)) / 1000; this.lastP = nowP; (this.samples = this.samples || []).push(real);
     this.fpsAcc += real; this.fpsN++; if (real > this.worst) this.worst = real;
     if (real > 0.04) (this.hitches = this.hitches || []).push(t.toFixed(1) + ':' + (real * 1000).toFixed(0));
+    if (Q.has('tris') && t > 8 && !this._tr) { // dev: one-off per-object triangle / draw-call breakdown (main view vs shadow passes)
+      const acc = this._tr = {}; const olds = [];
+      G.scene.traverse(o => { if (!o.isMesh && !o.isPoints && !o.isLine) return; let top = o; while (top.parent && top.parent !== G.scene) top = top.parent;
+        const key = (top.name || top.type) + '/' + (o.name || (o.material && o.material.name) || o.type).replace(/[\d_.]+$/, ''); const old = o.onAfterRender; olds.push([o, old]);
+        o.onAfterRender = function (r, sc, cam, geo, mat, grp) { const g = geo; let n = grp ? grp.count : g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 0; n /= 3;
+          const inst = o.isInstancedMesh ? o.count : (g.isInstancedBufferGeometry && isFinite(g.instanceCount) ? g.instanceCount : 1); const k = (cam.isOrthographicCamera ? 'S ' : 'M ') + key + (o.name ? '' : '[' + Object.keys(g.attributes).filter(x => !/^(position|normal|uv)$/.test(x)).join(',').slice(0, 36) + ']'); const e = acc[k] = acc[k] || [0, 0]; e[0]++; e[1] += n * inst; old.apply(this, arguments); };
+        const oldS = o.onAfterShadow; olds.push([o, oldS, 1]); o.onAfterShadow = function (r, ob, cam, scam, geo, mat, grp) { const g = geo; let n = (grp ? grp.count : g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 0) / 3; const inst = o.isInstancedMesh ? o.count : (g.isInstancedBufferGeometry && isFinite(g.instanceCount) ? g.instanceCount : 1); const k = (scam.right > 200 ? 'S2 ' : 'S1 ') + key + (o.name ? '' : '[' + Object.keys(g.attributes).filter(x => !/^(position|normal|uv)$/.test(x)).join(',').slice(0, 36) + ']'); const e = acc[k] = acc[k] || [0, 0]; e[0]++; e[1] += n * inst; if (oldS) oldS.apply(this, arguments); }; });
+      setTimeout(() => { for (const [o, old, sh] of olds) { if (sh) o.onAfterShadow = old; else o.onAfterRender = old; } const rows = Object.entries(acc).sort((x, y) => y[1][1] - x[1][1]); this.log('TRIS (frames~' + ((rows[0] || [0, [1]])[1][0]) + ') ' + rows.slice(0, 40).map(([k, v]) => `${k}: ${v[0]}d ${(v[1] / 1000).toFixed(0)}k`).join(' | ')); }, 400);
+    }
     while (this.shots.length && t >= this.shots[0].t) {
       const s = this.shots.shift();
       const ri = G.renderer.info; const sm = this.samples.slice().sort((a, b) => a - b); const med = sm[sm.length >> 1] * 1000, p95 = sm[Math.floor(sm.length * 0.95)] * 1000; this.samples.length = 0;

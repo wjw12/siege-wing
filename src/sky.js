@@ -80,7 +80,7 @@ export const sky = {
     scene.add(sun); scene.add(sun.target);
     // second cascade: a zero-intensity light that only carries the wide shadow map (see swCSM in core.js)
     const sun2 = this.sun2 = new THREE.DirectionalLight(0x000000, 0);
-    sun2.castShadow = true; sun2.shadow.mapSize.set(4096, 4096); sun2.shadow.bias = -0.0004; sun2.shadow.normalBias = 0.35;
+    sun2.castShadow = true; sun2.shadow.mapSize.set(4096, 4096); sun2.shadow.bias = -0.0004; sun2.shadow.normalBias = 0.35; sun2.shadow.autoUpdate = false;
     scene.add(sun2); scene.add(sun2.target);
     this.fill = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.0); scene.add(this.fill);
     scene.fog = new THREE.FogExp2(0xffffff, 0.0001); // only enables USE_FOG; real fog is in core.js chunks
@@ -130,7 +130,9 @@ export const sky = {
     const cam = G.camera;
     this.dome.position.copy(cam.position);
     this._fit(this.sun, near || focus, 105);
-    this._fit(this.sun2, focus, 310);
+    // the wide cascade only holds distant, soft shadows: redraw it every other frame (halves its draw calls); its matrix stays frozen with the map in between
+    this._far = (this._far | 0) + 1;
+    if (this._far % 2 === 0 || this._far < 4 || location.search.includes('fareach')) { this._fit(this.sun2, focus, 310); this.sun2.shadow.needsUpdate = true; }
     // refresh IBL periodically
     this.envT += dt;
     if (this.envT > (this.envRT && location.search.includes('noenv') ? 1e9 : 6)) {
