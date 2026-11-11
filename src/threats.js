@@ -14,6 +14,7 @@ import { weapons } from './weapons.js';
 
 const _v = new V3(), _v2 = new V3(), _v3 = new V3(), _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new V3(1, 1, 1), _z = new V3(0, 0, 1);
 const MAXA = 1500, GR = 9.81;
+const P2_SLOW = 1 / 0.6; // phase 2 castle fire runs at 60% of its old rate (playtest: the wall assault was too dense)
 
 function cloneProp(name) {
   const o = assets.props.scene.getObjectByName(name).clone(true);
@@ -98,6 +99,7 @@ export const threats = {
   update(dt) {
     const fly = heli.state === 'fly'; const hp = heli.pos, hv = heli.vel;
     const night = G.U.uNight.value;
+    const slow = this.phase === 2 ? P2_SLOW : 1; // stretches every reload / volley gap in phase 2 only
     // loiter clock: hovering high and slow (out of arrow reach) for more than a few seconds draws the castle's bombards even in phase 1
     // It ramps instead of switching: the slower you fly the faster it fills (nothing above 24 m/s), and it drains when you move on.
     { const hs = Math.hypot(hv.x, hv.z); const rate = fly && hp.y - 24 > 120 ? clamp(1 - hs / 24, 0, 1) : 0; const was = this.loiterT || 0;
@@ -114,7 +116,7 @@ export const threats = {
       if (f.volleying) {
         f.volleyClock += dt;
         if (!f.loosed && f.volleyClock >= 2.4) { f.loosed = true; this._loose(f); }
-        if (f.volleyClock >= 3.0) { f.volleying = false; f.volleyT = 5 - 3.0 + rnd(-0.3, 0.6) + (this.phase >= 2 ? -0.4 : 0); }
+        if (f.volleyClock >= 3.0) { f.volleying = false; f.volleyT = (5 + rnd(-0.3, 0.6) + (this.phase >= 2 ? -0.4 : 0)) * slow - 3.0; }
       } else {
         f.volleyT -= dt;
         if (inRange && f.volleyT <= 0) { f.volleying = true; f.volleyClock = 0; f.loosed = false; audio.play('horn', { pos: [f.cx, f.cy + 3, f.cz], gain: 1.1 }); this.volleyWarn = 2.4; this.lastVolleyPos.set(f.cx, f.cy, f.cz); f.spotted = true; }
@@ -153,7 +155,7 @@ export const threats = {
               const pool = this.boltPool.find(b => !b.visible) || this.boltPool[0]; pool.visible = true;
               this.bolts.push({ x: _v.x, y: _v.y, z: _v.z, vx: _v2.x * speed, vy: _v2.y * speed, vz: _v2.z * speed, t: 0, mesh: pool, near: false });
               audio.play('boltFire', { pos: [e.x, e.y, e.z] }); fx.dust(e.x, e.y + 0.5, e.z, 0, 1, 0, 0.8, 1, 0.3);
-              e.state = 'idle'; e.t = (this.phase >= 2 ? e.reload * 0.8 : e.reload) + rnd(0, 2); if (e.boltN) e.boltN.visible = false; e.reloadVis = 2.5;
+              e.state = 'idle'; e.t = ((this.phase >= 2 ? e.reload * 0.8 : e.reload) + rnd(0, 2)) * slow; if (e.boltN) e.boltN.visible = false; e.reloadVis = 2.5;
             }
           }
         } else { e.yaw += wrapPi((dist < 700 ? wantYaw : e.yaw) - e.yaw) * Math.min(1, dt * 1.2); }
@@ -166,8 +168,8 @@ export const threats = {
         if (e.pitchN) e.pitchN.rotation.x = damp(e.pitchN.rotation.x, -clamp(Math.atan2(dy, dh), 0.15, 1.2), 2, dt);
         if (manned && dh < 900) e.obj.rotation.y += wrapPi(Math.atan2(dx, dz) - e.obj.rotation.y) * Math.min(1, dt * 0.8);
         if (e.t < 3 && active) for (const i of e.crew) crowd.crew[i] = 1;
-        if (active && e.t <= 0 && G.time - (this.lastBombard || -99) > (this.phase >= 2 ? 3.6 : 9)) { /* phase 1: harassing fire only, well under half the phase 2 rate */
-          this.lastBombard = G.time; e.t = e.reload + rnd(-1, 2); e.spotted = true;
+        if (active && e.t <= 0 && G.time - (this.lastBombard || -99) > (this.phase >= 2 ? 3.6 * slow : 9)) { /* phase 1: harassing fire only, well under half the phase 2 rate */
+          this.lastBombard = G.time; e.t = (e.reload + rnd(-1, 2)) * slow; e.spotted = true;
           const speed = 230; const tof = dist / speed; const err = 12 + dist * 0.028;
           const tx = hp.x + hv.x * tof + rndS(err), ty = hp.y + hv.y * tof + rndS(err * 0.6), tz = hp.z + hv.z * tof + rndS(err);
           const mp = e.muzzleN ? e.muzzleN.getWorldPosition(_v) : _v.set(e.x, e.y + 1, e.z);
@@ -189,7 +191,7 @@ export const threats = {
         } else if (e.state === 'swing') {
           e.t += dt; const k = sat(e.t / 0.9); e.armA = lerp(-0.873, 2.0, k * k * (3 - 2 * k));
           if (e.t > 0.62 && !e.released) { e.released = true; this._launchBoulder(e); if (e.loaded) e.loaded.visible = false; }
-          if (e.t > 1.6) { e.state = 'idle'; e.released = false; e.t = e.reload + rnd(-2, 3) - (this.phase >= 3 ? 3 : 0); }
+          if (e.t > 1.6) { e.state = 'idle'; e.released = false; e.t = (e.reload + rnd(-2, 3) - (this.phase >= 3 ? 3 : 0)) * slow; }
         }
         if (e.arm) { e.arm.rotation.x = e.armA; if (e.cw) e.cw.rotation.x = -e.armA; if (e.sling) e.sling.rotation.x = -e.armA - 0.3 - sat((e.armA + 0.873) / 2.8) * 2.2; }
       }
